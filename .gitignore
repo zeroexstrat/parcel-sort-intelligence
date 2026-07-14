@@ -1,0 +1,7 @@
+# local workspace files — never part of the public repository
+.claude/
+HANDOFF.md
+docs/
+.DS_Store
+__pycache__/
+.pytest_cache/

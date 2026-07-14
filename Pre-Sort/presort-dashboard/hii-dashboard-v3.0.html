@@ -1,0 +1,3565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SLIC 0424 NGATE — HII Dashboard v3.0</title>
+<!-- WS4c: vendored libs are primary so the dashboard never depends on the CDN mid-shift;
+     cdnjs remains as fallback only. Same pattern as Live-Sort/vendor/. -->
+<script src="vendor/xlsx.full.min.js"></script>
+<script>if(!window.XLSX){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');}</script>
+<script src="vendor/chart.umd.min.js"></script>
+<script>if(!window.Chart){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"><\/script>');}</script>
+<script src="vendor/html2canvas.min.js"></script>
+<script>if(!window.html2canvas){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>');}</script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script>if(!(window.jspdf&&window.jspdf.jsPDF)){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');}</script>
+<script>
+// ── DASHBOARD_HUB_EMBED_BEGIN ── (WS4c: swapped per hub by embed_hub.py,
+// consuming the same hub_profile JSONs the tracker embeds)
+const DASHBOARD_HUB = { code: 'NGATE', slic: '0424', site: 'NORTHGATE Twilight' };
+// ── DASHBOARD_HUB_EMBED_END ──
+</script>
+<style>
+  :root{
+    /* HII Dashboard Design System — v3.0 */
+    --bg:#faf9f5;
+    --card:#efe9de;
+    --card2:#f5f0e8;
+    --header-bg:#efe9de;
+    --border:#e6dfd8;
+    --border-light:#ebe6df;
+    --accent:#cc785c;
+    --accent2:#a9583e;
+    --on-accent:#ffffff;
+    --warn:#d4a017; --danger:#c64545;
+    --muted:#6c6a64;
+    --text:#141413;
+    --text2:#3d3d3a;
+    --text-heading:#cc785c;
+    --green:#5db872; --green-deep:#3a8f52; --red:#c64545; --red-deep:#9b2c2c;
+    --orange:#e8a55a; --yellow:#d4a017; --purple:#8e8b82;
+    --radius:8px;
+    --surface-dark:#181715;
+    --on-dark:#faf9f5;
+    --on-dark-soft:#a09d96;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;min-height:100vh}
+
+  header{background:var(--header-bg);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .logo{font-size:16px;font-weight:700;color:var(--accent);letter-spacing:.5px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;text-transform:uppercase}
+  .logo small{color:var(--muted);font-weight:500;font-size:12px;margin-left:8px}
+  .header-meta{color:var(--muted);font-size:12px;text-align:right;display:flex;gap:14px;align-items:center}
+  .header-meta strong{color:var(--text)}
+  .btn{background:var(--accent);color:var(--on-accent);border:none;border-radius:4px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.secondary{background:var(--card2);color:var(--text)}
+  .btn.ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+
+  .tabs{display:flex;background:var(--header-bg);border-bottom:1px solid var(--border);padding:0 24px;gap:4px;flex-wrap:wrap}
+  .tab{padding:11px 18px;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);font-size:13px;font-weight:600;transition:.2s;user-select:none}
+  .tab:hover{color:var(--text)}
+  .tab.active{background:transparent;color:var(--text);border-bottom:3px solid var(--accent);border-radius:0;padding-bottom:8px;font-weight:700}
+  .tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-left:6px;vertical-align:middle;opacity:.4}
+  .tab.has-data .dot{opacity:1}
+
+  .page{display:none;padding:20px 24px}
+  .page.active{display:block}
+
+  /* KPI cards */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+  .kpi-label{font-size:11px;color:var(--text-heading);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .kpi-val{font-size:24px;font-weight:700;line-height:1.1}
+  .kpi-sub{font-size:11px;margin-top:6px;color:var(--text2)}
+  .kpi-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .stripe-green{background:var(--green)}
+  .stripe-red{background:var(--red)}
+  .stripe-yellow{background:var(--yellow)}
+  .stripe-orange{background:var(--orange)}
+  .stripe-deepgreen{background:var(--green-deep)}
+  .stripe-deepred{background:var(--red-deep)}
+  .stripe-neutral{background:var(--muted)}
+
+  .up{color:var(--green)} .down{color:var(--danger)} .neutral{color:var(--muted)}
+
+  /* Sections */
+  .section-title{font-size:11px;font-weight:700;color:var(--text-heading);text-transform:uppercase;letter-spacing:.8px;margin:24px 0 12px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+
+  /* Charts */
+  .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+  .chart-title{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+  .chart-wrap{position:relative;height:240px}
+  .chart-wide{grid-column:span 2}
+
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:var(--card2);color:var(--text-heading);font-weight:600;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;cursor:pointer;user-select:none}
+  th:hover{color:var(--text)}
+  th.sort-asc::after{content:' \25B2';font-size:9px;color:var(--accent)}
+  th.sort-desc::after{content:' \25BC';font-size:9px;color:var(--accent)}
+  td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text)}
+  tr:hover td{background:rgba(255,255,255,.025)}
+  .table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px;max-height:520px;overflow-y:auto}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  .badge-pd14{background:#1e3a8a;color:#bfdbfe}
+  .badge-pd58{background:#581c87;color:#e9d5ff}
+  .badge-pd912{background:#9a3412;color:#fed7aa}
+  .badge-prim{background:#0f766e;color:#a7f3d0}
+  .badge-smalls{background:#7c2d12;color:#fed7aa}
+  .badge-other{background:var(--card2);color:var(--text2)}
+  .badge-good{background:rgba(34,197,94,.18);color:var(--green)}
+  .badge-bad{background:rgba(239,68,68,.18);color:var(--red)}
+  .badge-warn{background:rgba(245,158,66,.18);color:var(--orange)}
+  .badge-info{background:rgba(79,142,247,.18);color:var(--accent)}
+
+  /* Upload tab */
+  .upload-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:18px}
+  .upload-slot{background:var(--card);border:2px dashed var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:.15s;position:relative;min-height:120px}
+  .upload-slot:hover, .upload-slot.dragover{border-color:var(--accent);background:rgba(79,142,247,.05)}
+  .upload-slot.has-file{border-style:solid;border-color:var(--green);background:rgba(34,197,94,.04)}
+  .upload-slot h4{font-size:13px;color:var(--text);margin-bottom:6px}
+  .upload-slot .pat{font-size:11px;color:var(--muted);font-family:Menlo,monospace;margin-bottom:8px}
+  .upload-slot .fname{font-size:12px;color:var(--green);word-break:break-all}
+  .upload-slot .clear{position:absolute;top:8px;right:8px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;display:none}
+  .upload-slot.has-file .clear{display:block}
+  .console{background:#000;color:#a0aec0;font-family:Menlo,monospace;font-size:12px;border-radius:var(--radius);padding:12px;max-height:200px;overflow-y:auto;border:1px solid var(--border);white-space:pre-wrap}
+  .console .ok{color:var(--green)} .console .err{color:var(--red)} .console .info{color:var(--accent)}
+
+  /* Filter bar */
+  .filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  .filter-bar input, .filter-bar select{background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px}
+  .filter-bar input:focus, .filter-bar select:focus{outline:none;border-color:var(--accent)}
+  .filter-bar label{font-size:11px;color:var(--muted);margin-right:4px;text-transform:uppercase;letter-spacing:.5px}
+
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  .delta-pos{color:var(--green);font-weight:600}
+  .delta-neg{color:var(--red);font-weight:600}
+  .delta-zero{color:var(--muted)}
+
+  .truth-table{margin-top:8px}
+  .truth-table td:nth-child(2){font-weight:600;color:var(--text2)}
+  .match{color:var(--green)} .mismatch{color:var(--orange)}
+
+  .empty-msg{color:var(--muted);text-align:center;padding:40px;font-size:13px}
+
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  @media (max-width:900px){
+    .charts-row, .grid-2, .compare-grid{grid-template-columns:1fr}
+    .chart-wide{grid-column:span 1}
+    .grid-3{grid-template-columns:1fr 1fr}
+  }
+
+  /* PDF export mode — white background, dark text, truncated tables */
+  body.pdf-mode .page{background:#fff !important;color:#222 !important}
+  body.pdf-mode .kpi{background:#f5f5f5 !important;border-color:#ddd !important}
+  body.pdf-mode .kpi-label{color:#555 !important}
+  body.pdf-mode .kpi-val{color:#111 !important}
+  body.pdf-mode .kpi-sub{color:#777 !important}
+  body.pdf-mode .kpi-stripe{opacity:.85}
+  body.pdf-mode .chart-card{background:#fff !important;border-color:#ddd !important}
+  body.pdf-mode .chart-title{color:#444 !important}
+  body.pdf-mode .section-title{display:none !important}
+  body.pdf-mode th{background:#e8e8e8 !important;color:#333 !important;border-color:#ccc !important}
+  body.pdf-mode td{color:#222 !important;border-color:#ddd !important}
+  body.pdf-mode tr:hover td{background:transparent !important}
+  body.pdf-mode .table-card{display:none !important}
+  body.pdf-mode .filter-bar{display:none !important}
+  body.pdf-mode .upload-slot{background:#f9f9f9 !important;border-color:#ccc !important}
+  body.pdf-mode .upload-slot h4{color:#333 !important}
+  body.pdf-mode .upload-slot .pat{color:#888 !important}
+  body.pdf-mode .badge{border:1px solid rgba(0,0,0,.12) !important}
+  body.pdf-mode .compare-grid .upload-row{display:none !important}
+  body.pdf-mode .empty-msg{color:#aaa !important}
+
+  /* ── cube heatmap (v2.9) ── */
+  .cube-csh-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);max-height:560px}
+  .cube-csh{border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+  .cube-csh th,.cube-csh td{padding:5px 8px;border:1px solid var(--border-light);text-align:right;white-space:nowrap}
+  .cube-csh th{background:var(--card2);color:var(--text-heading);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2}
+  .cube-csh td.dest-cell,.cube-csh th.dest-cell{position:sticky;left:0;background:var(--card2);text-align:left;z-index:1}
+  .cube-csh tr:first-child th.dest-cell{z-index:3}
+  .cube-legend-bar-good{width:160px;height:10px;border-radius:3px;background:linear-gradient(to right,#991b1b,#f59e42,#cc785c,#22c55e,#15803d)}
+  /* row hover for cube gap + all tables */
+  #cubeGap tbody tr:hover td,#cubeAll tbody tr:hover td{background:rgba(204,120,92,.07)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <span class="logo" id="hdrFacility">Hub Operations Dashboard</span>
+    <small id="hdrSortLabel">Drop SPR file to identify sort</small>
+  </div>
+  <div class="header-meta">
+    <span><strong id="hdrSortDate">No sort loaded</strong> · <span id="hdrLastRefresh">Drop SPR file to begin</span></span>
+    <button class="btn" onclick="rebuildDashboard(true)">Refresh</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="upload" onclick="showTab('upload')">Upload</div>
+  <div class="tab" data-tab="overview" onclick="showTab('overview')">Overview <span class="dot"></span></div>
+  <div class="tab" data-tab="areas" onclick="showTab('areas')">Work Areas <span class="dot"></span></div>
+  <div class="tab" data-tab="staffing" onclick="showTab('staffing')">Staffing <span class="dot"></span></div>
+  <div class="tab" data-tab="misloads" onclick="showTab('misloads')">Misloads <span class="dot"></span></div>
+  <div class="tab" data-tab="lib" onclick="showTab('lib')">LIB <span class="dot"></span></div>
+  <div class="tab" data-tab="inbound" onclick="showTab('inbound')">Inbound Data <span class="dot"></span></div>
+  <div class="tab" data-tab="smalls" onclick="showTab('smalls')">Smalls Data <span class="dot"></span></div>
+  <div class="tab" data-tab="outbound" onclick="showTab('outbound')">Outbound Data <span class="dot"></span></div>
+  <div class="tab" data-tab="cube" onclick="showTab('cube')">Cube <span class="dot"></span></div>
+  <div class="tab" data-tab="support" onclick="showTab('support')">Support</div>
+</div>
+
+<!-- ======================= UPLOAD ======================= -->
+<div class="page active" id="page-upload">
+  <div class="section-title">Daily exports — drag &amp; drop or click to upload</div>
+  <div class="upload-row" id="uploadRow">
+    <div class="upload-slot" data-key="sor">
+      <h4>SPR File <span class="badge badge-info">Required</span></h4>
+      <div class="pat">SPR-US-*-YYYY-MM-DD-{T|D|N}.xlsx</div>
+      <div class="fname" id="fname-sor">No file uploaded</div>
+      <button class="clear" onclick="clearFile('sor',event)">x</button>
+    </div>
+    <div class="upload-slot" data-key="cure">
+      <h4>CURE Cube Utilization</h4>
+      <div class="pat">CURE *.xlsx</div>
+      <div class="fname" id="fname-cure">No file uploaded</div>
+      <button class="clear" onclick="clearFile('cure',event)">x</button>
+    </div>
+    <div class="upload-slot" data-key="misload">
+      <h4>SVQ Misloads</h4>
+      <div class="pat">Misload_MM.DD_MM.DD.xlsx</div>
+      <div class="fname" id="fname-misload">No file uploaded</div>
+      <button class="clear" onclick="clearFile('misload',event)">x</button>
+    </div>
+    <div class="upload-slot" data-key="lib">
+      <h4>LIB Breakdown Worksheet</h4>
+      <div class="pat">LIB Breakdown Worksheet.xlsx</div>
+      <div class="fname" id="fname-lib">No file uploaded</div>
+      <button class="clear" onclick="clearFile('lib',event)">x</button>
+    </div>
+    <div class="upload-slot" data-key="seasTwilight">
+      <h4>SVQ Twilight Summary <span class="badge badge-info">Misload vol</span></h4>
+      <div class="pat">SVQ_Twilight_MM.DD.YY.xlsx</div>
+      <div class="fname" id="fname-seasTwilight">No file uploaded</div>
+      <button class="clear" onclick="clearFile('seasTwilight',event)">x</button>
+    </div>
+    <div class="upload-slot" data-key="emp">
+      <h4>SVQ Employee Summary</h4>
+      <div class="pat">SVQ_Employee*.xlsx</div>
+      <div class="fname" id="fname-emp">No file uploaded</div>
+      <button class="clear" onclick="clearFile('emp',event)">x</button>
+    </div>
+    <div class="upload-slot" data-key="igate">
+      <h4>SCANTRACK Employee Summary</h4>
+      <div class="pat">Employee Summary*.xlsx</div>
+      <div class="fname" id="fname-igate">No file uploaded</div>
+      <button class="clear" onclick="clearFile('igate',event)">x</button>
+    </div>
+  </div>
+  <input type="file" id="fileInput" multiple accept=".xlsx" style="display:none">
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+    <button class="btn" onclick="document.getElementById('fileInput').click()">Browse files</button>
+    <button class="btn ghost" onclick="clearAllFiles()">Clear all</button>
+    <button class="btn secondary" onclick="rebuildDashboard(true)">Re-parse all</button>
+    <label class="btn" style="cursor:pointer;background:var(--card2);color:var(--text);border:1px solid var(--border)">
+      Import Snapshot
+      <input type="file" accept=".json" style="display:none" onchange="importSnapshot(this.files[0])">
+    </label>
+  </div>
+
+  <div class="section-title">Parser console</div>
+  <div class="console" id="console">Ready. Drop your daily exports above.</div>
+
+  <div class="section-title">Summary truth table (from SPR Summary sheet)</div>
+  <div class="table-card" id="truthTableWrap">
+    <table class="truth-table"><thead><tr><th>Planned</th><th>Metric</th><th>Actual</th><th>Status</th></tr></thead>
+    <tbody id="truthTable"><tr><td colspan="4" class="empty-msg">No data — upload SPR file</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ======================= OVERVIEW ======================= -->
+<div class="page" id="page-overview">
+  <div class="section-title">Daily KPIs <span id="ovDateNote" style="font-weight:400;text-transform:none;color:var(--muted);margin-left:8px"></span></div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="charts-row">
+    <div class="chart-card"><div class="chart-title">Plan vs Actual — core metrics</div><div class="chart-wrap"><canvas id="chartPlanActual"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Hours composition (Direct vs Indirect)</div><div class="chart-wrap"><canvas id="chartHoursMix"></canvas></div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card chart-wide"><div class="chart-title">Net PPH by Coordinator Group</div><div class="chart-wrap"><canvas id="chartCoordPPH"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ======================= WORK AREAS ======================= -->
+<div class="page" id="page-areas">
+  <div class="section-title">Coordinator Group performance (Net PPH only)</div>
+  <div class="filter-bar">
+    <label>Coord Group</label>
+    <select id="areaCoordFilter" onchange="renderAreasTab()">
+      <option value="">All</option>
+      <option value="PD1-4">PD1-4</option>
+      <option value="PD5-8">PD5-8</option>
+      <option value="PD9-12">PD9-12</option>
+      <option value="Primary">Primary</option>
+      <option value="Smalls Sort">Smalls Sort</option>
+    </select>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card"><div class="chart-title">Net Volume by Coord Group</div><div class="chart-wrap"><canvas id="chartAreaVol"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Headcount by Coord Group</div><div class="chart-wrap"><canvas id="chartAreaHC"></canvas></div></div>
+  </div>
+
+  <div class="section-title">Detail by Work Area</div>
+  <div class="table-card">
+    <table id="areasTable"><thead><tr>
+      <th data-col="coord">Coord Group</th>
+      <th data-col="wa">Work Area</th>
+      <th data-col="hc" class="num">Headcount</th>
+      <th data-col="hours" class="num">Hours</th>
+      <th data-col="paidday" class="num">Paid Day</th>
+      <th data-col="vol" class="num">Net Volume</th>
+      <th data-col="netpph" class="num">Net PPH</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- ======================= STAFFING ======================= -->
+<div class="page" id="page-staffing">
+  <div class="section-title">Headcount summary</div>
+  <div class="kpi-grid" id="staffKpis"></div>
+
+  <div class="section-title">Non-working pay code breakdown</div>
+  <div class="kpi-grid" id="payCodeKpis"></div>
+
+  <div class="charts-row">
+    <div class="chart-card"><div class="chart-title">Headcount by Coord Group</div><div class="chart-wrap"><canvas id="chartStaffCoord"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Paid Day distribution (% of headcount, count in parens)</div><div class="chart-wrap"><canvas id="chartPaidDayDist"></canvas></div></div>
+  </div>
+
+
+  <div class="section-title">Employee roster (PAYACTUAL only — borrowed/loaned punches retained)</div>
+  <div class="filter-bar">
+    <label>Coord Group</label>
+    <select id="stfCoordFilter" onchange="renderStaffingRoster()">
+      <option value="">All</option>
+      <option value="PD1-4">PD1-4</option>
+      <option value="PD5-8">PD5-8</option>
+      <option value="PD9-12">PD9-12</option>
+      <option value="Primary">Primary</option>
+      <option value="Smalls Sort">Smalls Sort</option>
+      <option value="Air Recovery">Air Recovery</option>
+      <option value="Clerical">Clerical</option>
+      <option value="Indirect">Indirect (other)</option>
+    </select>
+    <label>FT/PT</label>
+    <select id="stfFtPtFilter" onchange="renderStaffingRoster()">
+      <option value="">All</option>
+      <option value="FT">FT</option>
+      <option value="PT">PT</option>
+    </select>
+    <label>Search name</label>
+    <input id="stfSearch" type="text" placeholder="employee name..." oninput="renderStaffingRoster()">
+  </div>
+  <div class="table-card">
+    <table id="staffTable"><thead><tr>
+      <th data-col="name" data-type="str">Name</th>
+      <th data-col="id" data-type="str">ID</th>
+      <th data-col="ftpt" data-type="str">FT/PT</th>
+      <th data-col="coord" data-type="str">Coord Group</th>
+      <th data-col="wa" data-type="str">Work Area</th>
+      <th data-col="job" data-type="str">Job</th>
+      <th data-col="start" data-type="str">Start</th>
+      <th data-col="end" data-type="str">End</th>
+      <th data-col="hours" data-type="num" class="num">Hours</th>
+      <th data-col="paidday" data-type="num" class="num">Paid Day</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- ======================= MISLOADS ======================= -->
+<div class="page" id="page-misloads">
+  <div class="section-title">Misload performance <span id="mlDateNote" style="font-weight:400;text-transform:none;color:var(--muted);margin-left:8px"></span></div>
+  <div class="kpi-grid" id="misloadKpis"></div>
+
+  <div class="charts-row">
+    <div class="chart-card"><div class="chart-title">Misloads by Next Scan (scanner alerts ignored)</div><div class="chart-wrap"><canvas id="chartMlNextScan"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Misloads by Work Area</div><div class="chart-wrap"><canvas id="chartMlArea"></canvas></div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card chart-wide"><div class="chart-title">Top Missed Destinations (which SLICs are most-missed)</div><div class="chart-wrap" style="height:280px"><canvas id="chartMlDest"></canvas></div></div>
+  </div>
+
+  <div class="section-title">Top 15 repeat misload patterns (Plan Flow → Next Scan)</div>
+  <div class="table-card">
+    <table id="mlPatterns"><thead><tr>
+      <th>Plan Flow (intended)</th>
+      <th>Next Scan (where it went)</th>
+      <th class="num">Count</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="section-title">Misload detail</div>
+  <div class="filter-bar">
+    <label>Coord Group</label>
+    <select id="mlCoordFilter" onchange="renderMisloadTab()">
+      <option value="">All</option>
+      <option value="PD1-4">PD1-4</option>
+      <option value="PD5-8">PD5-8</option>
+      <option value="PD9-12">PD9-12</option>
+      <option value="Smalls Sort">Smalls Sort</option>
+      <option value="Air">Air</option>
+      <option value="Back Feeds">Back Feeds</option>
+      <option value="Unassigned">Unassigned</option>
+    </select>
+    <label>Work Area</label><select id="mlAreaFilter" onchange="renderMisloadDetail()"><option value="">All</option></select>
+    <label>Search</label><input id="mlSearch" type="text" placeholder="track #, dest, name..." oninput="renderMisloadDetail()">
+  </div>
+  <div class="table-card">
+    <table id="mlDetail"><thead><tr>
+      <th>Date</th><th>Work Area</th><th>Employee</th><th>Tracking #</th><th>Plan Flow</th><th>Next Scan</th><th>Dest</th><th>City, ST</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- ======================= LIB ======================= -->
+<div class="page" id="page-lib">
+  <div class="section-title">LIB performance <span id="libDateNote" style="font-weight:400;text-transform:none;color:var(--muted);margin-left:8px"></span></div>
+  <div class="kpi-grid" id="libKpis"></div>
+
+  <div class="charts-row">
+    <div class="chart-card"><div class="chart-title">LIB by Error Type</div><div class="chart-wrap"><canvas id="chartLibType"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">LIB by Work Area (BACKFEEDS / UNASSIGNED / PD-* only)</div><div class="chart-wrap"><canvas id="chartLibArea"></canvas></div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card chart-wide"><div class="chart-title">LIB by Plan Flow Destination (sorted by count, desc)</div><div class="chart-wrap" style="height:320px"><canvas id="chartLibDest"></canvas></div></div>
+  </div>
+
+  <div class="section-title">LIB by State (descending)</div>
+  <div class="table-card" style="max-height:360px">
+    <table id="libStatesTable"><thead><tr>
+      <th>State</th><th class="num">Count</th><th class="num">% of total</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="section-title">LIB detail (work area filtered to BACKFEEDS / UNASSIGNED / PD-* by default)</div>
+  <div class="filter-bar">
+    <label>Error Type</label><select id="libTypeFilter" onchange="renderLibDetail()"><option value="">All</option></select>
+    <label>State</label><select id="libStateFilter" onchange="renderLibDetail()"><option value="">All</option></select>
+    <label>Include all areas</label><input type="checkbox" id="libIncludeAll" onchange="renderLibTab()">
+    <label>Search</label><input id="libSearch" type="text" placeholder="track #, dest, area..." oninput="renderLibDetail()">
+  </div>
+  <div class="table-card">
+    <table id="libDetail"><thead><tr>
+      <th>Date</th><th>Error Type</th><th>Work Area</th><th>Tracking #</th><th>Plan Flow</th><th>Origin</th><th>Dest</th><th>City, ST</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- ======================= INBOUND DATA ======================= -->
+<div class="page" id="page-inbound"></div>
+
+<!-- ======================= SMALLS DATA ======================= -->
+<div class="page" id="page-smalls"></div>
+
+<!-- ======================= OUTBOUND DATA ======================= -->
+<div class="page" id="page-outbound">
+  <div class="section-title">SCANTRACK Scan Metrics (Twilight Employee Summary — excludes SLS / SS / ASX)</div>
+  <div id="igate-kpis" class="kpi-grid" style="margin-bottom:14px"></div>
+  <div class="table-card" id="igate-table-wrap">
+    <table id="igate-table"><thead><tr>
+      <th data-col="user">User</th>
+      <th data-col="pkgs" class="num">Packages</th>
+      <th data-col="hours" class="num">Hours</th>
+      <th data-col="pph" class="num">Scan PPH</th>
+    </tr></thead>
+    <tbody id="igate-tbody"><tr><td colspan="4" class="empty-msg">No data — upload SCANTRACK Employee Summary file</td></tr></tbody>
+    </table>
+  </div>
+  <div id="emp-metrics-section"></div>
+  <div id="sls-metrics-section"></div>
+</div>
+
+<!-- ======================= CUBE ======================= -->
+<div class="page" id="page-cube">
+  <div class="section-title">Cube utilization (CURE) <span id="cubeDateNote" style="font-weight:400;text-transform:none;color:var(--muted);margin-left:8px"></span></div>
+  <div class="filter-bar">
+    <label>OS (sort)</label>
+    <select id="cubeOSFilter" onchange="renderCubeTab()">
+      <option value="auto">Auto from SPR (-T/-D/-N)</option>
+      <option value="T">T — Twilight</option>
+      <option value="D">D — Day</option>
+      <option value="N">N — Night</option>
+      <option value="all">All sorts</option>
+    </select>
+    <span id="cubeOSNote" style="font-size:11px;color:var(--muted)"></span>
+    <span style="margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)">
+      <label for="cubeGoalInput" style="font-weight:600;letter-spacing:.3px">Division Goal</label>
+      <input id="cubeGoalInput" type="number" min="0" max="100" step="0.1" value="62.2"
+        style="width:68px;background:var(--card2);border:1px solid var(--border);color:var(--text);
+               border-radius:4px;padding:4px 7px;font-size:12px;text-align:center"
+        oninput="_onCubeGoalChange()" title="Division overall cube utilization goal (%)"/>
+      <span style="color:var(--muted)">%</span>
+    </span>
+  </div>
+  <div class="kpi-grid" id="cubeKpis"></div>
+
+  <div style="display:flex;justify-content:flex-start;margin-bottom:18px">
+    <div class="chart-card" style="display:flex;align-items:center;gap:20px;padding:16px 20px;width:auto;max-width:480px">
+      <div>
+        <div class="chart-title" style="margin-bottom:10px">Util % distribution<br><span style="font-weight:400;font-size:11px;color:var(--muted)">TFCS &ge; 95% loads</span></div>
+        <div style="width:160px;height:160px;position:relative"><canvas id="chartCubeUtil"></canvas></div>
+      </div>
+      <div id="cubeUtilLegend" style="font-size:12px;line-height:1.9;min-width:170px"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Utilization % by Destination and Sort Date <span style="font-weight:400;text-transform:none;color:var(--muted);margin-left:8px">TFCS &ge; 95% loads only. Each cell = avg util for that destination on that date. Target: 75%.</span></div>
+  <div class="filter-bar">
+    <label>Show top:</label>
+    <select id="cubeHeatmapTopN" onchange="renderCubeHeatmap()">
+      <option value="15">15 destinations</option>
+      <option value="25" selected>25 destinations</option>
+      <option value="50">50 destinations</option>
+      <option value="all">All destinations</option>
+    </select>
+    <label>Rank by:</label>
+    <select id="cubeHeatmapRank" onchange="renderCubeHeatmap()">
+      <option value="loads" selected>Load count</option>
+      <option value="worst">Worst avg util</option>
+      <option value="volatile">Most volatile (stdev)</option>
+    </select>
+    <label>Order:</label>
+    <select id="cubeHeatmapDir" onchange="renderCubeHeatmap()">
+      <option value="desc" selected>↓ Descending</option>
+      <option value="asc">↑ Ascending</option>
+    </select>
+    <span style="margin-left:auto;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px">low <div class="cube-legend-bar-good"></div> high</span>
+  </div>
+  <div id="cubeHeatmapWrap" class="cube-csh-wrap"><div class="empty-msg" style="padding:24px">Upload CURE file to populate the heatmap.</div></div>
+
+  <div class="section-title">Loads with TFCS &ge; 95% but Util &lt; 75% — PPW gap to 75% goal</div>
+  <div class="table-card">
+    <table id="cubeGap"><thead><tr>
+      <th data-col="dest" data-type="str">Destination</th>
+      <th data-col="dt" data-type="str">Load Date</th>
+      <th data-col="tfcs" data-type="num" class="num">TFCS %</th>
+      <th data-col="util" data-type="num" class="num">Util %</th>
+      <th data-col="ppw" data-type="num" class="num">PPW (current)</th>
+      <th data-col="ppwGoal" data-type="num" class="num">PPW @ 75%</th>
+      <th data-col="ppwGap" data-type="num" class="num">PPW gap</th>
+      <th data-col="netVol" data-type="num" class="num">Avg Net</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="section-title">TFCS &ge; 95% Loads &mdash; Current CURE File</div>
+  <div class="filter-bar">
+    <label>Util band</label><select id="cubeBandFilter" onchange="renderCubeAll()">
+      <option value="">All</option>
+      <option value="0-65">0-65 (deep red)</option>
+      <option value="65-70">65-70 (red)</option>
+      <option value="70-75">70-75 (orange/yellow)</option>
+      <option value="75-80">75-80 (green)</option>
+      <option value="80+">80+ (deep green)</option>
+    </select>
+    <label>Search dest</label><input id="cubeSearch" type="text" placeholder="dest SLIC or name..." oninput="renderCubeAll()">
+  </div>
+  <div class="table-card">
+    <table id="cubeAll"><thead><tr>
+      <th data-col="dest" data-type="str">Destination</th>
+      <th data-col="dt" data-type="str">Load Date</th>
+      <th data-col="os" data-type="str">OS</th>
+      <th data-col="tfcs" data-type="num" class="num">TFCS %</th>
+      <th data-col="util" data-type="num" class="num">Util %</th>
+      <th data-col="ppw" data-type="num" class="num">PPW</th>
+      <th data-col="pkgCube" data-type="num" class="num" title="Dimensionless cube factor">Pkg Cube</th>
+      <th data-col="avgNet" data-type="num" class="num">Avg Net</th>
+      <th data-col="loadedCube" data-type="num" class="num">Loaded Cube</th>
+      <th data-col="equipCap" data-type="num" class="num">Equip Cap</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+
+<!-- ======================= TREND ANALYSIS ======================= -->
+
+
+<!-- ======================= SUPPORT ======================= -->
+<div class="page" id="page-support"></div>
+
+<script>
+/* =====================================================================
+   GLOBALS
+   ===================================================================== */
+const C = {accent:'#cc785c', accent2:'#a9583e', warn:'#f59e42', danger:'#ef4444',
+           green:'#22c55e', greenDeep:'#15803d', red:'#ef4444', redDeep:'#991b1b',
+           orange:'#f59e42', yellow:'#eab308', purple:'#a78bfa', blue:'#3b82f6',
+           pink:'#f472b6', muted:'#6c6a64', text:'#6c6a64', card2:'#f5f0e8'};
+
+Chart.defaults.color = '#6c6a64';
+Chart.defaults.borderColor = 'rgba(110,106,100,.2)';
+Chart.defaults.font.family = "'Segoe UI',Arial,sans-serif";
+Chart.defaults.font.size = 11;
+
+const pdfDataLabelsPlugin = {
+  id: 'pdfDataLabels',
+  afterDatasetsDraw(chart, args, options) {
+    if (!document.body.classList.contains('pdf-mode')) return;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = '#222';
+
+    chart.data.datasets.forEach((dataset, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (meta.hidden || meta.type !== 'bar') return;
+      const isHorizontal = chart.config.options.indexAxis === 'y';
+      
+      meta.data.forEach((bar, index) => {
+        const val = dataset.data[index];
+        if (val === null || val === undefined || val === 0) return;
+        
+        let text = typeof val === 'number' 
+          ? (val % 1 === 0 ? fmt(val) : val.toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})) 
+          : String(val);
+        
+        if (isHorizontal) {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(text, bar.x + 4, bar.y);
+        } else {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(text, bar.x, bar.y - 4);
+        }
+      });
+    });
+    ctx.restore();
+  }
+};
+Chart.register(pdfDataLabelsPlugin);
+
+// ── IndexedDB ──────────────────────────────────────────────────────────────
+const IDB = {
+  DB_NAME: 'hub_ops_trends_db',
+  STORE:   'snapshots',
+  _db: null,
+
+  open() {
+    return new Promise((res, rej) => {
+      if (IDB._db) return res(IDB._db);
+      const req = indexedDB.open(IDB.DB_NAME, 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore(IDB.STORE, { keyPath: 'snapshotKey' });
+      req.onsuccess = e => { IDB._db = e.target.result; res(IDB._db); };
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+
+  async put(record)  { const db = await IDB.open(); return new Promise((res,rej) => { const tx = db.transaction(IDB.STORE,'readwrite'); tx.objectStore(IDB.STORE).put(record).onsuccess = () => res(); tx.onerror = e => rej(e); }); },
+  async getAll()     { const db = await IDB.open(); return new Promise((res,rej) => { const req = db.transaction(IDB.STORE,'readonly').objectStore(IDB.STORE).getAll(); req.onsuccess = e => res(e.target.result); req.onerror = e => rej(e); }); },
+  async delete(key)  { const db = await IDB.open(); return new Promise((res,rej) => { const tx = db.transaction(IDB.STORE,'readwrite'); tx.objectStore(IDB.STORE).delete(key).onsuccess = () => res(); tx.onerror = e => rej(e); }); },
+  async clear()      { const db = await IDB.open(); return new Promise((res,rej) => { const tx = db.transaction(IDB.STORE,'readwrite'); tx.objectStore(IDB.STORE).clear().onsuccess = () => res(); tx.onerror = e => rej(e); }); }
+};
+
+const charts = {};
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+function makeChart(canvasId, cfg){
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId);
+  if(!ctx) return null;
+  charts[canvasId] = new Chart(ctx, cfg);
+  return charts[canvasId];
+}
+
+/* =====================================================================
+   SNAPSHOT EXTRACTION  (IndexedDB persistence for Trend Analysis tab)
+   ===================================================================== */
+function buildSnapshot(src) {
+  src = src || DATA;
+  const sortDate = src.sortDate || null;
+  const sortCode = src.sortCode || 'T';
+  if (!sortDate) return null;   // no SPR loaded — nothing to save
+
+  const S  = src.summary || { planned: {}, actual: {} };
+  const p  = S.planned  || {};
+  const a  = S.actual   || {};
+
+  // Misload count + frequency denominator
+  const misloadCount = (src.misloads && src.misloads.rows ? src.misloads.rows.length : 0);
+  const seasVol      = (src.seasTwi && src.seasTwi.totalVol > 0) ? src.seasTwi.totalVol : 0;
+  const handledVol   = seasVol || ((a['Volume'] || 0) + (a['Air Volume'] || 0));
+  const misloadFreqDenom = (misloadCount > 0 && handledVol > 0) ? Math.round(handledVol / misloadCount) : 0;
+
+  // LIB
+  const totalLIB    = (src.lib && src.lib.totalLIB != null) ? src.lib.totalLIB : 0;
+  const libVol      = (src.lib && src.lib.volume)  ? src.lib.volume  : 0;
+  const libFreqDenom = (totalLIB > 0 && libVol > 0) ? Math.round(libVol / totalLIB) : 0;
+
+  // Cube — aggregated util% (Σ loaded cube / Σ equip cap × 100)
+  const cubeRows = (src.cube && src.cube.rows) ? src.cube.rows : [];
+  const os       = sortCode;   // use the sort's own OS for OS-specific tiles
+  function cStats(filterFn) {
+    const rows = cubeRows.filter(filterFn);
+    let lc = 0, ec = 0;
+    rows.forEach(r => {
+      if (r.totLoadedCube > 0) lc += r.totLoadedCube;
+      if (r.totEquipCap  > 0) ec += r.totEquipCap;
+    });
+    return { count: rows.length, agg: ec > 0 ? lc / ec * 100 : 0 };
+  }
+  const allOS   = cStats(r => !!r.os);
+  const allHigh = cStats(r => !!r.os && r.tfcs >= 95);
+  const tOS     = cStats(r => !os || r.os === os);
+  const tHigh   = cStats(r => (!os || r.os === os) && r.tfcs >= 95);
+
+  return {
+    snapshotKey: `${sortDate}_${sortCode}`,
+    sortDate,
+    sortCode,
+    slic:    src.facility || DASHBOARD_HUB.code,
+    savedAt: new Date().toISOString(),
+
+    // 1a — Day of week (T12:00:00 prevents timezone off-by-one on YYYY-MM-DD strings)
+    dayOfWeek: (() => {
+      try { return new Date(sortDate + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long'}); }
+      catch(e) { return null; }
+    })(),
+
+    // Overview KPIs (plan + actual)
+    netVolume:   { plan: p['Volume']        || 0, actual: a['Volume']        || 0 },
+    netPPH:      { plan: p['PPH']           || 0, actual: a['PPH']           || 0 },
+    totalHours:  { plan: p['Hours']         || 0, actual: a['Hours']         || 0 },
+    paidDay:     { plan: p['Paid Day']      || 0, actual: a['Paid Day']      || 0 },
+    headcount:   a['Worked']        || 0,
+    flowPerHour: a['Flow Per Hour'] || 0,
+    pctSmalls:   { plan: p['% Smalls']      || 0, actual: a['% Smalls']      || 0 },
+
+    // 1b — Sort span (from Summary sheet actual; field key includes space)
+    sortSpan: a['Sort Span'] || null,
+
+    // 1c — Smalls volume and % (both plan and actual)
+    //      volActual is computed here because it is not stored separately in DATA —
+    //      the render layer derives it as vol × pctSmalls at display time.
+    smalls: {
+      volActual: (() => {
+        const vol = a['Volume'] || 0;
+        const pct = a['% Smalls'] || 0;
+        return (vol && pct) ? Math.round(vol * pct) : 0;
+      })(),
+      pctPlan:   p['% Smalls'] || 0,
+      pctActual: a['% Smalls'] || 0,
+    },
+
+    // 1d — SCANTRACK summary metrics (computed from igate.rows [{user,pkgs,hours,pph}])
+    igate: (() => {
+      const rows = (src.igate && src.igate.rows) ? src.igate.rows : [];
+      if (!rows.length) return { empCount:0, totalPkgs:0, avgPPH:0, totalHours:0 };
+      const totalPkgs  = rows.reduce((s,r) => s + (r.pkgs  || 0), 0);
+      const totalHours = rows.reduce((s,r) => s + (r.hours || 0), 0);
+      const avgPPH     = totalHours > 0 ? +(totalPkgs / totalHours).toFixed(1) : 0;
+      return { empCount: rows.length, totalPkgs, totalHours: +totalHours.toFixed(2), avgPPH };
+    })(),
+
+    // Misloads
+    totalMisloads:    misloadCount,
+    misloadFreqDenom: misloadFreqDenom,
+
+    // LIB
+    totalLIB:     totalLIB,
+    libFreqDenom: libFreqDenom,
+
+    // Cube tiles
+    cube: {
+      allUtil:        allOS.agg,
+      allTFCS95Util:  allHigh.agg,
+      allTFCS95Loads: allHigh.count,
+      osUtil:         tOS.agg,
+      osTFCS95Util:   tHigh.agg,
+      osTFCS95Loads:  tHigh.count,
+    },
+
+    // 1e — Coord group volumes (aggregated from workAreaProd by coord group)
+    coordGroupVols: (() => {
+      const out = {};
+      Object.values(src.workAreaProd || {}).forEach(r => {
+        const g = r.coord || 'Other';
+        out[g] = (out[g] || 0) + (r.netVol || 0);
+      });
+      return out;
+    })(),
+
+    // 1e — All work area volumes — no filter, complete picture
+    //      (keyed by work-area code, e.g. 'OUT-1', 'SML-1', 'PD-7', ...)
+    workAreaVols: (() => {
+      const out = {};
+      Object.values(src.workAreaProd || {}).forEach(r => {
+        if (r.wa) out[r.wa] = r.netVol || 0;
+      });
+      return out;
+    })(),
+
+    // 1e — Per-PD volumes (PD-1 through PD-12 extracted for convenience)
+    pdVols: (() => {
+      const out = {};
+      Object.values(src.workAreaProd || {}).forEach(r => {
+        const wa = (r.wa || '').trim();
+        if (/^PD-\d+$/i.test(wa)) out[wa] = r.netVol || 0;
+      });
+      return out;
+    })(),
+
+    // 1e — Per-work-area PPH (for building group-level PPH profiles over time)
+    workAreaPPH: (() => {
+      const out = {};
+      Object.values(src.workAreaProd || {}).forEach(r => {
+        if (r.wa && r.netPPH) out[r.wa] = +r.netPPH.toFixed(1);
+      });
+      return out;
+    })(),
+
+    // 1f — Per-coord-group hours (derived from workAreaProd: netVol/netPPH)
+    coordGroupHours: (() => {
+      const out = {};
+      Object.values(src.workAreaProd || {}).forEach(r => {
+        const g = r.coord || 'Other';
+        out[g] = (out[g] || 0) + (r.hours || 0);
+      });
+      return out;
+    })(),
+  };
+}
+
+function buildSnapshotFrom(imported) { return buildSnapshot(imported); }
+
+function importSnapshot(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      const snap = buildSnapshotFrom(imported);
+      if (!snap) { alert('No sort date found in JSON — cannot import as trend snapshot.'); return; }
+      IDB.put(snap).then(() => {
+        logMsg('Snapshot imported: ' + snap.snapshotKey, 'ok');
+        // Trend tab removed in v2.9.2
+      }).catch(err => { logMsg('Import failed: ' + err, 'err'); });
+    } catch(err) { alert('Invalid JSON file: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+/* File state */
+const fileState = {
+  sor:null, cure:null, misload:null, lib:null, emp:null, seasTwilight:null, igate:null,
+  misloadA:null, misloadB:null,
+  libA:null, libB:null,
+  cureA:null, cureB:null
+};
+let DATA = emptyData();
+
+function emptyData(){
+  return {
+    sortDate: null,           // YYYY-MM-DD from SPR filename
+    summary: null,            // {planned:{...}, actual:{...}}
+    coordGroups: {},          // {PD1-4: {hc,hours,vol,paidDay,workAreas:[]}, ...}
+    workAreas: {},            // {OUT-1: {hc,hours,paidDay,coord,...}}
+    staffing: [],             // raw staff rows
+    payCodeCounts: {},        // {PAYACTUAL:..., 29-VACATION:...}
+    payCodeDistinctEmps: {},  // {PAYACTUAL: 198, ...}
+    misloads: {date:null, rows:[], byNextScan:{}, byArea:{}, byDest:{}, byPattern:{}},
+    lib: {date:null, rows:[], byType:{}, byArea:{}},
+    employee: {date:null, rows:[]},
+    cube: {date:null, rows:[], highTfcsRows:[], gapRows:[]},
+    seasTwi: {date:null, totalVol:0, totalMisloads:0, rows:[], byCoord:{}},
+    igate: {rows:[]},
+    empMetrics: { empRows: [], slsRows: [] },
+    inbound: {
+      unloads:   { 'Unload 1':[], 'Unload 2':[], 'Unload 3':[], 'Unload 4':[] },
+      bulkBelts: { 'Bulk Belt 1':[], 'Bulk Belt 2':[], 'Bulk Belt 3':[], 'Bulk Belt 4':[] },
+      pfeeds:    { 'PF-1':[], 'PF-2':[], 'PF-3':[], 'PF-4':[] }
+    }
+  };
+}
+
+/* =====================================================================
+   COORDINATOR GROUP RULES
+   - OUT-1..4 → PD1-4
+   - OUT-5..8 → PD5-8
+   - OUT-9..12 → PD9-12
+   - UNL-1..4, SRT-1..4, INC-1, Secondary Sort, MET-1..4 → Primary
+   - SML-1..3 → Smalls Sort
+   - Else: fall back to Work Area Type
+   ===================================================================== */
+/* Production coord groups carry Net PPH; Indirect/Air/etc. do not */
+const PRODUCTION_GROUPS = ['PD1-4','PD5-8','PD9-12','Primary','Smalls Sort'];
+function isProduction(g){ return PRODUCTION_GROUPS.includes(g); }
+
+function coordGroup(workArea, workAreaType){
+  if(!workArea && !workAreaType) return 'Other';
+  const wa = String(workArea||'').replace(/-+$/,'').toUpperCase().trim();
+  const wat = String(workAreaType||'').trim();
+  let m = wa.match(/^OUT-(\d+)/);
+  if(m){
+    const n = parseInt(m[1],10);
+    if(n>=1 && n<=4) return 'PD1-4';
+    if(n>=5 && n<=8) return 'PD5-8';
+    if(n>=9 && n<=12) return 'PD9-12';
+    return 'Outbound Other';
+  }
+  if(/^UNL-[1-4]$/.test(wa) || /^SRT-[1-4]$/.test(wa) || /^INC-1$/.test(wa) || /^MET-[1-4]$/.test(wa)) return 'Primary';
+  if(/secondary sort/i.test(wat)) return 'Primary';
+  if(/^SML-[1-3]$/.test(wa)) return 'Smalls Sort';
+  // Indirect bucket: Clerical CLK-1..6, Special Activity Code, Air Recovery, LT Leave
+  if(/^CLK-[1-6]$/.test(wa)) return 'Indirect';
+  if(/special activity code/i.test(wat) || /special activity code/i.test(wa)) return 'Indirect';
+  if(/air recovery/i.test(wat)) return 'Indirect';
+  if(/clerical/i.test(wat)) return 'Indirect';
+  if(/lt leave/i.test(wat)) return 'Indirect';
+  return wat || 'Other';
+}
+function coordBadge(g){
+  const c = {'PD1-4':'badge-pd14','PD5-8':'badge-pd58','PD9-12':'badge-pd912','Primary':'badge-prim','Smalls Sort':'badge-smalls','Indirect':'badge-other','Air Recovery':'badge-info','Clerical':'badge-other'}[g] || 'badge-other';
+  return `<span class="badge ${c}">${escapeHTML(g)}</span>`;
+}
+/* Display label for a staff row — promote AIR-1 → Air Recovery, CLK-1..5 → Clerical so the badge tells the truth */
+function displayCoordForRow(r){
+  const wa = (r.wa||'').toUpperCase();
+  if(wa === 'AIR-1') return 'Air Recovery';
+  if(/^CLK-[1-5]$/.test(wa)) return 'Clerical';
+  return r.coord;
+}
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+function fmt(n, dp){ if(n===null||n===undefined||isNaN(n)) return '—'; const d = (dp===undefined?0:dp); return Number(n).toLocaleString(undefined,{minimumFractionDigits:d, maximumFractionDigits:d}); }
+function pct(n, dp){ if(n===null||n===undefined||isNaN(n)) return '—'; return (n*100).toFixed(dp===undefined?1:dp)+'%'; }
+function escapeHTML(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function clean(s){ return s==null?'':String(s).replace(/\s+/g,' ').trim(); }
+function num(v){ if(v===null||v===undefined||v==='') return 0; const n = Number(v); return isNaN(n)?0:n; }
+
+function logMsg(msg, kind){
+  const c = document.getElementById('console');
+  const cls = kind==='ok'?'ok':kind==='err'?'err':kind==='info'?'info':'';
+  const t = new Date().toLocaleTimeString();
+  c.innerHTML += `\n<span class="${cls}">[${t}] ${escapeHTML(msg)}</span>`;
+  c.scrollTop = c.scrollHeight;
+}
+
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active', p.id==='page-'+name));
+}
+
+/* =====================================================================
+   FILE HANDLING
+   ===================================================================== */
+const FILE_PATTERNS = [
+  {key:'sor',          re:/^SPR[-_]US/i},
+  {key:'cure',         re:/^CURE/i},
+  {key:'seasTwilight', re:/^SVQ[_\s]?Twilight/i},
+  {key:'misload',      re:/^Misload/i},
+  {key:'lib',          re:/^LIB[_\s]?Breakdown/i},
+  {key:'igate',        re:/^Employee[_\s]Summary/i},
+  {key:'emp',          re:/^SVQ[_\s]Employee/i}
+];
+function detectKey(name){ for(const p of FILE_PATTERNS) if(p.re.test(name)) return p.key; return null; }
+
+function setupDropZones(){
+  document.querySelectorAll('.upload-slot').forEach(slot=>{
+    slot.addEventListener('click', e=>{
+      if(e.target.classList.contains('clear')) return;
+      const inp = document.createElement('input');
+      inp.type='file'; inp.accept='.xlsx';
+      inp.onchange = ev=>{ const f = ev.target.files[0]; if(f) handleFile(f, slot.dataset.key); };
+      inp.click();
+    });
+    slot.addEventListener('dragover', e=>{ e.preventDefault(); slot.classList.add('dragover'); });
+    slot.addEventListener('dragleave', ()=>slot.classList.remove('dragover'));
+    slot.addEventListener('drop', e=>{
+      e.preventDefault();
+      slot.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if(f) handleFile(f, slot.dataset.key);
+    });
+  });
+  document.getElementById('fileInput').addEventListener('change', e=>{
+    [...e.target.files].forEach(f=>handleFile(f, null));
+  });
+  document.body.addEventListener('dragover', e=>e.preventDefault());
+  document.body.addEventListener('drop', e=>{
+    if(e.target.closest('.upload-slot')) return;
+    e.preventDefault();
+    [...(e.dataTransfer?.files||[])].forEach(f=>handleFile(f, null));
+  });
+}
+
+function handleFile(file, hintKey){
+  const detected = detectKey(file.name);
+  let key = hintKey || detected;
+  if(!key){ logMsg(`Cannot route ${file.name} — unknown filename pattern`, 'err'); return; }
+
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array', cellDates:true});
+      fileState[key] = {name:file.name, wb};
+      const slot = document.querySelector(`.upload-slot[data-key="${key}"]`);
+      if(slot){
+        slot.classList.add('has-file');
+        const fnameEl = document.getElementById('fname-'+key);
+        if(fnameEl) fnameEl.textContent = file.name;
+      }
+      logMsg(`Parsed ${file.name} → ${key} slot`, 'ok');
+      rebuildDashboard();
+    } catch(err){
+      logMsg(`Error reading ${file.name}: ${err.message}`, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function clearFile(key, e){
+  if(e) e.stopPropagation();
+  fileState[key] = null;
+  const slot = document.querySelector(`.upload-slot[data-key="${key}"]`);
+  if(slot){
+    slot.classList.remove('has-file');
+    const fn = document.getElementById('fname-'+key);
+    if(fn) fn.textContent = 'No file uploaded';
+  }
+  else rebuildDashboard();
+}
+function clearAllFiles(){ Object.keys(fileState).forEach(k=>clearFile(k)); logMsg('Cleared all files', 'info'); }
+
+/* =====================================================================
+   PARSERS
+   ===================================================================== */
+function sheetToRows(ws){ return XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true}); }
+function findSheet(wb, regex){ for(const n of wb.SheetNames){ if(regex.test(n)) return wb.Sheets[n]; } return null; }
+
+/* SPR file: Summary + Staffing + Work Area Types */
+function parseSORFile(fileObj){
+  const wb = fileObj.wb;
+  const out = {
+    sortDate:null, summary:{planned:{}, actual:{}},
+    staffing:[], payCodeCounts:{}, payCodeDistinctEmps:{},
+    coordGroups:{}, workAreas:{}, workAreaProd:{}
+  };
+  // Filename: SPR-US-{SLIC}-YYYY-MM-DD-{T|D|N}.xlsx — extract date, sort code, and facility code
+  const m = fileObj.name.match(/(\d{4}-\d{2}-\d{2})/);
+  if(m) out.sortDate = m[1];
+  const sc = fileObj.name.match(/-([TDN])(?:\.xlsx)?$/i);
+  out.sortCode = sc ? sc[1].toUpperCase() : null;
+  // Facility token sits between "SPR-US-" and the date: SPR-US-{TOKEN}-2026-04-17-T
+  const fac = fileObj.name.match(/^SPR[-_]US[-_]([A-Za-z0-9]+)[-_]\d{4}/i);
+  out.facility = fac ? fac[1].toUpperCase() : null;
+
+  // Summary
+  const sum = wb.Sheets['Summary'];
+  if(sum){
+    const rows = sheetToRows(sum);
+    rows.forEach(r=>{
+      if(!r) return;
+      const label = clean(r[1]);
+      if(!label) return;
+      out.summary.planned[label] = r[0];
+      out.summary.actual[label] = r[2];
+    });
+  }
+
+  // Staffing
+  const stf = wb.Sheets['Staffing'];
+  if(stf){
+    const rows = sheetToRows(stf);
+    if(rows.length>1){
+      const hdr = rows[0].map(h=>clean(h));
+      const idx = (name)=>hdr.findIndex(h=>h.toLowerCase()===name.toLowerCase());
+      const colWAT = idx('Work Area Type');
+      const colWA  = idx('Work Area');
+      const colJob = idx('Work Area Job');
+      const colName= idx('Employee Name');
+      const colID  = idx('Employee ID');
+      const colFt  = idx('FT/PT');
+      const colPC  = idx('Pay Code');
+      const colSch = idx('Scheduled Start');
+      const colSt  = idx('Start Time');
+      const colEnd = idx('End Time');
+      const colHrs = idx('Hours');
+      const colNW  = idx('Not Worked Hours');
+      const colPD  = idx('Paid Day');
+
+      for(let i=1;i<rows.length;i++){
+        const r = rows[i];
+        if(!r) continue;
+        const name = clean(r[colName]); if(!name) continue;
+        const wat = clean(r[colWAT]);
+        const wa = clean(r[colWA]).replace(/-+$/,'');
+        const pc = clean(r[colPC]);
+        const ftpt = clean(r[colFt]);
+        const id = clean(r[colID]);
+        const hours = num(r[colHrs]);
+        const paidDay = num(r[colPD]);
+        const coord = coordGroup(wa, wat);
+        const rec = {
+          name, id, wat, wa, job: clean(r[colJob]),
+          ftpt, payCode: pc, sched: clean(r[colSch]),
+          start: clean(r[colSt]), end: clean(r[colEnd]),
+          hours, paidDay, coord
+        };
+        out.staffing.push(rec);
+
+        out.payCodeCounts[pc] = (out.payCodeCounts[pc]||0) + 1;
+        if(!out.payCodeDistinctEmps[pc]) out.payCodeDistinctEmps[pc] = new Set();
+        out.payCodeDistinctEmps[pc].add(id || name);
+
+        if(pc === 'PAYACTUAL'){
+          // Coord group rollup (PAYACTUAL only)
+          if(!out.coordGroups[coord]) out.coordGroups[coord] = {hc:new Set(), hours:0, paidDay:0, workAreas:new Set()};
+          out.coordGroups[coord].hc.add(id || name);
+          out.coordGroups[coord].hours += hours;
+          out.coordGroups[coord].paidDay += paidDay;
+          out.coordGroups[coord].workAreas.add(wa);
+
+          if(!out.workAreas[wa]) out.workAreas[wa] = {hc:new Set(), hours:0, paidDay:0, coord, wat};
+          out.workAreas[wa].hc.add(id || name);
+          out.workAreas[wa].hours += hours;
+          out.workAreas[wa].paidDay += paidDay;
+        }
+      }
+      // finalize sets to counts
+      for(const k in out.coordGroups){
+        out.coordGroups[k].hcCount = out.coordGroups[k].hc.size;
+        out.coordGroups[k].workAreaList = [...out.coordGroups[k].workAreas].sort();
+      }
+      for(const k in out.workAreas){
+        out.workAreas[k].hcCount = out.workAreas[k].hc.size;
+      }
+      for(const k in out.payCodeDistinctEmps){
+        out.payCodeDistinctEmps[k] = out.payCodeDistinctEmps[k].size;
+      }
+    }
+  }
+
+  /* Work Area Types sheet: extract per-work-area Net Vol + Net PPH (subtotal rows where col A & col B are filled but col C is empty) */
+  const wat = wb.Sheets['Work Area Types'];
+  if(wat){
+    const rows = sheetToRows(wat);
+    if(rows.length>1){
+      const hdr = rows[0].map(h=>clean(h));
+      const idx = (name)=>hdr.findIndex(h=>h.toLowerCase()===name.toLowerCase());
+      const colWAT  = idx('Work Area Type');
+      const colWA   = idx('Work Area');
+      const colJob  = idx('Work Area Job');
+      const colName = idx('Employee Name');
+      const cNetVolAct = idx('Actual Net Volume');
+      const cNetVolPlan= idx('Planned Net Volume');
+      const cNetPPHAct = idx('Actual Net Packages Per Hour');
+      const cNetPPHPlan= idx('Planned Net Packages Per Hour');
+      const cActStaff  = idx('Actual Staffing');
+
+      for(let i=1;i<rows.length;i++){
+        const r = rows[i]; if(!r) continue;
+        const t = clean(r[colWAT]);
+        const w = clean(r[colWA]).replace(/-+$/,'');
+        const job = clean(r[colJob]);
+        const name = clean(r[colName]);
+        // Subtotal row at the work-area level: type & wa filled, no job, no name
+        if(!t || !w || job || name) continue;
+        const netVol = num(r[cNetVolAct]);
+        const netPPH = num(r[cNetPPHAct]);
+        const planNetVol = num(r[cNetVolPlan]);
+        const planNetPPH = num(r[cNetPPHPlan]);
+        const stf = num(r[cActStaff]);
+        const hours = (netPPH > 0) ? (netVol / netPPH) : 0;
+        const cg = coordGroup(w, t);
+        out.workAreaProd[w] = {wa:w, wat:t, coord:cg, netVol, netPPH, hours, stf, planNetVol, planNetPPH};
+      }
+    }
+  }
+
+  return out;
+}
+
+/* CURE file */
+function parseCURE(fileObj){
+  const wb = fileObj.wb;
+  const ws = wb.Sheets[wb.SheetNames[0]]; // Sheet 1
+  const rows = sheetToRows(ws);
+  const hdr = rows[0].map(h=>clean(h));
+  const col = (name)=>hdr.findIndex(h=>h.toLowerCase()===name.toLowerCase());
+  const I = {
+    date: col('Ld Create Dt'), os: col('OS'),
+    dest: col('Dest'), destName: col('Dest Name'),
+    util: col('Util %'), pkgCube: col('Pkg Cube'), avgTfcs: col('Avg TFCS %'),
+    avgEquipCap: col('Avg Equip Cap'), avgNet: col('Avg Net'),
+    ppw: col('Pieces per Wall'), avgLoads: col('Avg Loads'),
+    totLoads: col('Total Loads'), totTfcs: col('Total TFCS %'),
+    avgLoadedCube: col('Avg Loaded Cube'),
+    totLoadedCube: col('Total Loaded Cube'),
+    totEquipCap: col('Total Equip Cap'),
+    totGross: col('Total Gross ')
+  };
+
+  const out = {date:null, rows:[], highTfcsRows:[], gapRows:[]};
+  const dates = new Set();
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i]; if(!r) continue;
+    const tfcs = num(r[I.avgTfcs]);
+    const util = num(r[I.util]);
+    const ppw = num(r[I.ppw]);
+    const avgNet = num(r[I.avgNet]);
+    const dest = clean(r[I.dest]);
+    const destName = clean(r[I.destName]);
+    let dt = r[I.date];
+    if(dt instanceof Date){ dates.add(dt.toISOString().slice(0,10)); dt = dt.toISOString().slice(0,10); }
+    else if(dt){ const ds = String(dt); dates.add(ds); }
+    if(!dest) continue;
+    const rec = {date:dt, os: clean(r[I.os]).toUpperCase(), dest, destName, tfcs, util, ppw, avgNet,
+                  pkgCube:num(r[I.pkgCube]),
+                  avgEquipCap:num(r[I.avgEquipCap]), avgLoadedCube:num(r[I.avgLoadedCube]),
+                  totLoadedCube:num(r[I.totLoadedCube]),
+                  totEquipCap:num(r[I.totEquipCap]),
+                  totLoads:num(r[I.totLoads])};
+    out.rows.push(rec);
+    if(tfcs >= 95){
+      out.highTfcsRows.push(rec);
+      if(util < 75 && ppw > 0){
+        // PPW @ 75% scaling: ppwGoal = ppw * (75/util)
+        const ppwGoal = util > 0 ? ppw * (75/util) : null;
+        const ppwGap = ppwGoal ? (ppwGoal - ppw) : null;
+        out.gapRows.push({...rec, ppwGoal, ppwGap});
+      }
+    }
+  }
+  if(dates.size){
+    const sorted = [...dates].sort();
+    out.date = `${sorted[0]} to ${sorted[sorted.length-1]}`;
+  }
+  return out;
+}
+
+/* SVQ-style report: row 4 (idx 3) "MM/DD/YYYY - MM/DD/YYYY"; data rows start at idx 6 */
+function parseSEASDateRange(rows){
+  for(let i=0;i<Math.min(rows.length, 6);i++){
+    const r = rows[i] || [];
+    for(const c of r){
+      if(typeof c === 'string'){
+        const m = c.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})/);
+        if(m) return `${m[1]} to ${m[2]}`;
+        const m2 = c.match(/(\d{4}-\d{2}-\d{2})/);
+        if(m2) return m2[1];
+      }
+    }
+  }
+  return null;
+}
+
+/* Misload */
+function parseMisload(fileObj){
+  const wb = fileObj.wb;
+  const ws = wb.Sheets['SVQ Report'] || wb.Sheets[wb.SheetNames[0]];
+  const rows = sheetToRows(ws);
+  const out = {date:null, rows:[], byNextScan:{}, byArea:{}, byDest:{}, byPattern:{}};
+  out.date = parseSEASDateRange(rows);
+
+  // header row 6 (idx 5); data starts idx 6
+  const hdr = (rows[5]||[]).map(h=>clean(String(h||'')).replace(/\n/g,' '));
+  const col = (re)=>hdr.findIndex(h=>re.test(h));
+  const I = {
+    err: col(/^Error/i),
+    area: col(/^Work Area/i),
+    emp: col(/^Employee/i),
+    loadDate: col(/^Load Date/i),
+    track: col(/^Tracking/i),
+    dest: col(/^Dest$/i),
+    nextScan: col(/^Next Scan$/i),
+    planFlow: col(/^Plan Flow$/i),
+    city: col(/^City$/i),
+    st: col(/^St$/i)
+  };
+
+  for(let i=6;i<rows.length;i++){
+    const r = rows[i]; if(!r) continue;
+    const err = clean(r[I.err]);
+    if(!err || /^TOTALS?\b/i.test(err)) continue;
+    const area = clean(r[I.area]) || 'UNASSIGNED';
+    let dt = r[I.loadDate];
+    if(dt instanceof Date) dt = dt.toISOString().slice(0,10);
+    const rec = {
+      err, area, coord: misloadCoordGroup(area),
+      emp: clean(r[I.emp]), date:dt, track:clean(r[I.track]),
+      planFlow: clean(r[I.planFlow]), nextScan: clean(r[I.nextScan]),
+      dest: clean(r[I.dest]), city: clean(r[I.city]), st: clean(r[I.st])
+    };
+    out.rows.push(rec);
+    out.byArea[area] = (out.byArea[area]||0)+1;
+    if(rec.nextScan) out.byNextScan[rec.nextScan] = (out.byNextScan[rec.nextScan]||0)+1;
+    if(rec.dest) out.byDest[rec.dest] = (out.byDest[rec.dest]||0)+1;
+    if(rec.planFlow && rec.nextScan){
+      const k = `${rec.planFlow}|||${rec.nextScan}`;
+      out.byPattern[k] = (out.byPattern[k]||0)+1;
+    }
+  }
+  return out;
+}
+
+
+/* SVQ Twilight Summary — per-area volume + misload counts
+   Structure: Row 0 title, Row 1 facility, Row 2 date range,
+   Row 3 group headers (Volume / Smalls Volume / Smalls Bags / Misload),
+   Row 4 sub-headers (Scan Tot | Rpt | ... | Pkg Big | Tots | Tot Scan Freq ...),
+   Row 5+ data; last row = TOTALS.
+   Column indices (0-based): 0=WorkArea, 1=ScanTot, 9=MisloadTots */
+function parseSEASTwilight(fileObj){
+  const wb = fileObj.wb;
+  const ws = wb.Sheets['SVQ Report'] || wb.Sheets[wb.SheetNames[0]];
+  const rows = sheetToRows(ws);
+  const out = {date:null, totalVol:0, totalMisloads:0, rows:[], byCoord:{}};
+  // Date from first few rows
+  for(let i=0; i<Math.min(rows.length, 5); i++){
+    const r = rows[i] || [];
+    for(const c of r){
+      if(typeof c === 'string'){
+        const m = c.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})/);
+        if(m){ out.date = `${m[1]} to ${m[2]}`; break; }
+      }
+    }
+    if(out.date) break;
+  }
+  // Data rows start at index 5 (after 2-row header)
+  for(let i=5; i<rows.length; i++){
+    const r = rows[i]; if(!r) continue;
+    const area = clean(r[0]); if(!area) continue;
+    const isTotal = /^TOTALS?$/i.test(area);
+    const scanTot = num(r[1]);
+    const misloadTots = num(r[9]);
+    if(isTotal){
+      out.totalVol = scanTot;
+      out.totalMisloads = misloadTots;
+      continue;
+    }
+    const coord = misloadCoordGroup(area);
+    out.rows.push({area, scanTot, misloadTots, coord});
+    if(!out.byCoord[coord]) out.byCoord[coord] = {vol:0, misloads:0, areas:[]};
+    out.byCoord[coord].vol += scanTot;
+    out.byCoord[coord].misloads += misloadTots;
+    out.byCoord[coord].areas.push({area, scanTot, misloadTots});
+  }
+  return out;
+}
+
+/* LIB Breakdown Worksheet — sheet 'SVQ LIB Summary'
+   - B2 = report date (a Date)
+   - B3 = volume used to compute LIB frequency (since LIB report is 3 days behind the SPR sort date)
+   - Scan log starts a few rows below; header row contains 'Error' in col A */
+function parseLIB(fileObj){
+  const wb = fileObj.wb;
+  const ws = wb.Sheets['SVQ LIB Summary'] || wb.Sheets[wb.SheetNames[0]];
+  const out = {date:null, volume:null, totalLIB:null, derived:null, opl:null, scanned:null, rnp:null,
+               rows:[], byType:{}, byArea:{}};
+  if(!ws) return out;
+  const rows = sheetToRows(ws);
+
+  // Pull labeled values from col A → col B
+  for(let i=0;i<Math.min(rows.length, 20);i++){
+    const r = rows[i] || [];
+    const lbl = clean(r[0]).toLowerCase();
+    const val = r[1];
+    if(/^date/.test(lbl) && val){
+      out.date = (val instanceof Date) ? val.toISOString().slice(0,10) : String(val);
+    }
+    if(/^volume/.test(lbl) && typeof val === 'number') out.volume = val;
+    if(/^lib total/.test(lbl) && typeof val === 'number') out.totalLIB = val;
+    if(/^derived/.test(lbl) && typeof val === 'number') out.derived = val;
+    if(/^opl/.test(lbl) && typeof val === 'number') out.opl = val;
+    if(/^lib scanned/.test(lbl) && typeof val === 'number') out.scanned = val;
+    if(/^rnp/.test(lbl) && typeof val === 'number') out.rnp = val;
+  }
+
+  // Find scan-log header row (first cell starts with 'Error')
+  let hdrRow = -1;
+  for(let i=0;i<rows.length;i++){
+    const v = rows[i] && rows[i][0];
+    if(typeof v === 'string' && /^Error/i.test(clean(v))){ hdrRow = i; break; }
+  }
+  if(hdrRow >= 0){
+    const hdr = rows[hdrRow].map(h => clean(String(h||'')).replace(/\n/g,' '));
+    const col = (re)=>hdr.findIndex(h=>re.test(h));
+    const I = {
+      err: col(/^Error/i), area: col(/^Work Area/i), emp: col(/^Employee/i),
+      loadDate: col(/^Load Date/i), track: col(/^Tracking/i),
+      origin: col(/^Origin$/i), dest: col(/^Dest$/i),
+      nextScan: col(/^Next Scan$/i), planFlow: col(/^Plan Flow$/i),
+      city: col(/^City$/i), st: col(/^St$/i)
+    };
+    for(let i=hdrRow+1;i<rows.length;i++){
+      const r = rows[i]; if(!r) continue;
+      const err = clean(r[I.err]); if(!err || /^TOTALS?\b/i.test(err)) continue;
+      let dt = r[I.loadDate]; if(dt instanceof Date) dt = dt.toISOString().slice(0,10);
+      const rec = {
+        err, area: clean(r[I.area])||'UNASSIGNED', emp: clean(r[I.emp]),
+        date:dt, track:clean(r[I.track]),
+        origin: clean(r[I.origin]), dest: clean(r[I.dest]),
+        planFlow: clean(r[I.planFlow]), nextScan: clean(r[I.nextScan]),
+        city: clean(r[I.city]), st: clean(r[I.st])
+      };
+      out.rows.push(rec);
+      out.byType[rec.err] = (out.byType[rec.err]||0)+1;
+      out.byArea[rec.area] = (out.byArea[rec.area]||0)+1;
+    }
+  }
+  // Fallback: if no totalLIB cell, count scan-log rows
+  if(out.totalLIB == null) out.totalLIB = out.rows.length;
+  return out;
+}
+
+/* Employee Summary */
+function parseEmpSummary(fileObj){
+  const wb = fileObj.wb;
+  const ws = wb.Sheets['SVQ Report'] || wb.Sheets[wb.SheetNames[0]];
+  const rows = sheetToRows(ws);
+  const out = {date: parseSEASDateRange(rows), rows:[]};
+  // group/sub headers at rows 4,5 (idx 3,4); data idx 5+
+  for(let i=5;i<rows.length;i++){
+    const r = rows[i]; if(!r) continue;
+    const eid = clean(r[0]); if(!eid || /TOTALS/i.test(eid)) continue;
+    out.rows.push({
+      empId: eid, scanTot: num(r[1]), rpt: num(r[2]), scanEffPct: num(r[3]),
+      smlNotBag: num(r[4]), bagPct: num(r[5]), smlNotLink: num(r[6]),
+      bagEff: num(r[7]), misloadBig: num(r[8]), misloadTots: num(r[9]),
+      bnlPkgs: num(r[11]), totalLib: num(r[15]), derivedLib: num(r[17])
+    });
+  }
+  return out;
+}
+
+/* SCANTRACK Twilight Employee Summary
+   Structure:
+   - Row 0 (idx 0): Title row "Employee Summary"
+   - Row 1 (idx 1): Header: [null, 'User', 'Belt', 'Total Packages', ..., 'Total Scan Hours', 'Scan PPH']
+   - Row 2+        : Data rows. First occurrence per user = totals row (Belt = null).
+                     Subsequent rows are per-belt breakdowns (duplicate totals, skip them).
+   Column indices (0-based): 1=User, 3=Total Packages, 13=Total Scan Hours, 14=Scan PPH
+   Exclusions (any user whose ID starts with SLS, ASX, or SS;
+   plus exact-match exclusions: SECND9999D, QSB9KZV) */
+const EXCLUDE_USERS = new Set(['SECND9999D', 'QSB9KZV', 'VKP7KKM']);
+function parseIGate(fileObj){
+  const wb = fileObj.wb;
+  const ws = wb.Sheets['Sheet1'] || wb.Sheets[wb.SheetNames[0]];
+  const rows = sheetToRows(ws);
+  const out = {rows:[]};
+  if(!rows || rows.length < 3) return out;
+  // rows[0] = title, rows[1] = header, rows[2]+ = data
+  const seen = new Set();
+  for(let i = 2; i < rows.length; i++){
+    const r = rows[i]; if(!r) continue;
+    const rawUser = r[1];
+    if(rawUser === null || rawUser === undefined || rawUser === '') continue;
+    const user = String(rawUser).trim();
+    if(!user) continue;
+    // Exclusions: starts with SLS, ASX, or SS (case-insensitive)
+    const up = user.toUpperCase();
+    if(up.startsWith('SLS') || up.startsWith('ASX') || up.startsWith('SS')) continue;
+    // Exact-match exclusions (case-insensitive)
+    if(EXCLUDE_USERS.has(up)) continue;
+    // Dedup: first occurrence only
+    if(seen.has(user)) continue;
+    seen.add(user);
+    out.rows.push({
+      user,
+      pkgs:  num(r[3]),
+      hours: num(r[13]),
+      pph:   num(r[14])
+    });
+  }
+  return out;
+}
+
+/* =====================================================================
+   EMPLOYEE DATA PARSER  (Employee_Data_MM.DD_MM.DD.xlsx)
+   Header row: index 4 (row 5 in Excel). Data: index 5 → second-to-last.
+   Last row = TOTALS — skipped.
+   ===================================================================== */
+function parseEmployeeData(fileObj){
+  const wb = fileObj.wb;
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const allRows = sheetToRows(ws);
+  // Header at row index 4; data starts at index 5; last row is TOTALS — drop it
+  const dataRows = allRows.slice(5, allRows.length - 1);
+
+  const EXCLUDE = new Set(['QSB9KZV', 'READER', '0000000201']);
+  // Standard employee ID: 7-digit numeric OR 10-char alphanumeric
+  const EMP_RE = /^\d{7}$|^[A-Z0-9]{10}$/i;
+  const SLS_RE = /SLS/i;
+
+  // Unload groups: 0000000001–0000000040 → 4 buckets
+  function inboundGroup(empStr){
+    const n = parseInt(empStr, 10);
+    if(isNaN(n)) return null;
+    if(n >= 1  && n <= 10)  return { section:'unloads',    key:'Unload 1' };
+    if(n >= 11 && n <= 20)  return { section:'unloads',    key:'Unload 2' };
+    if(n >= 21 && n <= 30)  return { section:'unloads',    key:'Unload 3' };
+    if(n >= 31 && n <= 40)  return { section:'unloads',    key:'Unload 4' };
+    if(n === 101)            return { section:'bulkBelts',  key:'Bulk Belt 1' };
+    if(n === 102)            return { section:'bulkBelts',  key:'Bulk Belt 2' };
+    if(n === 103)            return { section:'bulkBelts',  key:'Bulk Belt 3' };
+    if(n === 104)            return { section:'bulkBelts',  key:'Bulk Belt 4' };
+    if(n === 401)            return { section:'pfeeds',     key:'PF-1' };
+    if(n === 402)            return { section:'pfeeds',     key:'PF-2' };
+    if(n === 403)            return { section:'pfeeds',     key:'PF-3' };
+    if(n === 404)            return { section:'pfeeds',     key:'PF-4' };
+    return null;
+  }
+
+  const empRows = [], slsRows = [];
+
+  for(const r of dataRows){
+    const emp = String(r[0] || '').trim();
+    if(!emp) continue;
+
+    const scannedVol = num(r[1]);   // col B — Scan Tot
+    const reported   = num(r[2]);   // col C — Rpt
+    const scanEff    = num(r[3]);   // col D — Scan% Eff
+    const mlCount    = num(r[9]);   // col J — Misload Tots
+    const mlFreq     = mlCount === 0 ? scannedVol : Math.round(scannedVol / mlCount); // derived
+    const libCount   = num(r[15]);  // col P — Total LIB Tots
+    const libFreq    = num(r[16]);  // col Q — LIB Scan Freq
+
+    // Inbound group routing: IDs 1–40 (unloads), 101–104 (bulk belts), 401–404 (primary feeds)
+    const ig = inboundGroup(emp);
+    if(ig !== null){
+      DATA.inbound[ig.section][ig.key].push({emp, scannedVol, mlCount, mlFreq, libCount, libFreq});
+      continue;
+    }
+
+    // SLS rows
+    if(SLS_RE.test(emp)){
+      slsRows.push({emp, scannedVol, reported, scanEff, mlCount, mlFreq, libCount, libFreq});
+      continue;
+    }
+
+    // Standard employee rows
+    if(EXCLUDE.has(emp.toUpperCase())) continue;
+    if(!EMP_RE.test(emp)) continue;
+    empRows.push({emp, scannedVol, reported, scanEff, mlCount, mlFreq, libCount, libFreq});
+  }
+
+  DATA.empMetrics = {empRows, slsRows};
+}
+
+/* =====================================================================
+   REBUILD + RENDER
+   ===================================================================== */
+function rebuildDashboard(manual){
+  DATA = emptyData();
+  if(fileState.sor){
+    try{ Object.assign(DATA, parseSORFile(fileState.sor)); }
+    catch(e){ logMsg(`SPR parse error: ${e.message}`,'err'); }
+  }
+  if(fileState.cure){ try{ DATA.cube = parseCURE(fileState.cure); }catch(e){ logMsg(`CURE: ${e.message}`,'err'); } }
+  if(fileState.misload){ try{ DATA.misloads = parseMisload(fileState.misload); }catch(e){ logMsg(`Misload: ${e.message}`,'err'); } }
+  if(fileState.lib){ try{ DATA.lib = parseLIB(fileState.lib); }catch(e){ logMsg(`LIB: ${e.message}`,'err'); } }
+  if(fileState.emp){ try{ DATA.employee = parseEmpSummary(fileState.emp); }catch(e){ logMsg(`Emp: ${e.message}`,'err'); } }
+  if(fileState.emp){ try{ parseEmployeeData(fileState.emp); }catch(e){ logMsg(`EmpMetrics: ${e.message}`,'err'); } }
+  if(fileState.seasTwilight){ try{ DATA.seasTwi = parseSEASTwilight(fileState.seasTwilight); }catch(e){ logMsg(`SVQ Twilight: ${e.message}`,'err'); } }
+  if(fileState.igate){ try{ DATA.igate = parseIGate(fileState.igate); logMsg(`SCANTRACK: ${DATA.igate.rows.length} employees parsed`,'ok'); }catch(e){ logMsg(`SCANTRACK: ${e.message}`,'err'); } }
+
+  renderAll();
+
+  // Auto-save snapshot to IndexedDB after every successful rebuild
+  const snap = buildSnapshot();
+  if (snap) {
+    IDB.put(snap).then(() => {
+      // Trend tab removed in v2.9.2
+    }).catch(e => console.warn('Trend snapshot save failed:', e));
+  }
+
+  // Tab data dots
+  const dots = {overview:!!fileState.sor, areas:!!fileState.sor, staffing:!!(fileState.sor || fileState.igate),
+                misloads:!!(fileState.misload || fileState.seasTwilight), lib:!!fileState.lib,
+                'inbound': !!(fileState.emp), 'outbound': !!(fileState.emp || fileState.igate),
+                smalls: !!(fileState.sor || fileState.misload || fileState.lib),
+                cube:!!fileState.cure,
+                };
+  document.querySelectorAll('.tab').forEach(t=>{
+    if(dots[t.dataset.tab] !== undefined) t.classList.toggle('has-data', !!dots[t.dataset.tab]);
+  });
+  if(manual) logMsg('Dashboard rebuilt', 'info');
+
+  document.getElementById('hdrSortDate').textContent = DATA.sortDate ? `Sort Date: ${DATA.sortDate}` : 'No sort loaded';
+  document.getElementById('hdrLastRefresh').textContent = `Last refreshed: ${new Date().toLocaleTimeString()}`;
+
+  // Dynamic header: facility code + sort code → e.g. "SLIC <hub> · Day Sort"
+  const SORT_LABELS = {T:'Twilight Sort', D:'Day Sort', N:'Night Sort'};
+  const facEl = document.getElementById('hdrFacility');
+  const sortEl = document.getElementById('hdrSortLabel');
+  if(DATA.facility){
+    facEl.textContent = `SLIC ${DATA.facility}`;
+  } else {
+    facEl.textContent = 'Hub Operations Dashboard';
+  }
+  if(DATA.sortCode){
+    const label = SORT_LABELS[DATA.sortCode] || `Sort -${DATA.sortCode}`;
+    sortEl.textContent = `Hub Operations Dashboard · ${label}`;
+    document.title = `${DATA.facility ? 'SLIC '+DATA.facility+' — ' : ''}${label} Operations Dashboard`;
+  } else if(DATA.sortDate){
+    sortEl.textContent = 'Hub Operations Dashboard';
+  }
+}
+
+function renderAll(){
+  renderTruthTable();
+  renderOverview();
+  renderAreasTab();
+  renderStaffingTab();
+  renderMisloadTab();
+  renderLibTab();
+  renderInboundTab();
+  renderSmallsTab();
+  renderOutboundTab();
+  renderCubeTab();
+  renderSupportTab();
+  // Trend tab removed in v2.9.2
+}
+
+/* ----------------------- TRUTH TABLE ----------------------- */
+function renderTruthTable(){
+  const tb = document.getElementById('truthTable');
+  if(!DATA.summary){ tb.innerHTML = `<tr><td colspan="4" class="empty-msg">No data — upload SPR file</td></tr>`; return; }
+  const targets = ['Sort Span','Paid Day','Worked','PPH','Direct Hours','Indirect Hours','% Smalls','Process Rate','Loads','Volume','Hours','Flow Per Hour'];
+  let html = '';
+  targets.forEach(t=>{
+    const p = DATA.summary.planned[t];
+    const a = DATA.summary.actual[t];
+    if(p===undefined && a===undefined) return;
+    const fmtVal = v=>{
+      if(v===null||v===undefined||v==='') return '—';
+      if(typeof v === 'number'){
+        if(t==='% Smalls') return (v*100).toFixed(2)+'%';
+        if(['Sort Span','Paid Day'].includes(t)) return v.toFixed(2);
+        if(['PPH','Direct PPH'].includes(t)) return v.toFixed(1);
+        return Math.abs(v) < 100 ? v.toFixed(2) : Math.round(v).toLocaleString();
+      }
+      return v;
+    };
+    let status = '';
+    if(typeof p==='number' && typeof a==='number'){
+      const isInverse = ['Paid Day','Hours','Indirect Hours','Loads','Direct Hours'].includes(t); // lower = better
+      const better = isInverse ? a<=p : a>=p;
+      status = better ? '<span class="match">Met</span>' : '<span class="mismatch">Miss</span>';
+    }
+    html += `<tr><td>${fmtVal(p)}</td><td>${escapeHTML(t)}</td><td>${fmtVal(a)}</td><td>${status}</td></tr>`;
+  });
+  tb.innerHTML = html || `<tr><td colspan="4" class="empty-msg">No summary fields found</td></tr>`;
+}
+
+/* ----------------------- OVERVIEW ----------------------- */
+function colorBadgeStripe(metric, planned, actual){
+  // Direction logic for stripe color
+  if(planned===null||actual===null||planned===undefined||actual===undefined||isNaN(planned)||isNaN(actual)) return 'stripe-neutral';
+  const higherIsBetter = ['% Smalls','Volume','Net Volume','PPH','Net PPH','Flow Per Hour','Process Rate'];
+  const lowerIsBetter = ['Paid Day','Hours','Sort Span'];
+  if(higherIsBetter.includes(metric)) return actual >= planned ? 'stripe-green' : 'stripe-red';
+  if(lowerIsBetter.includes(metric)) return actual <= planned ? 'stripe-green' : 'stripe-red';
+  return 'stripe-neutral';
+}
+
+/* Total handled volume for misload-frequency denominators.
+   Priority: SVQ Twilight Summary total vol (date-aligned to today−2) when uploaded.
+   Fallback: Ground Volume + Air Volume from SPR Summary sheet. */
+function totalHandledVolume(summary){
+  if(DATA.seasTwi && DATA.seasTwi.totalVol > 0) return DATA.seasTwi.totalVol;
+  if(!summary || !summary.actual) return 0;
+  const ground = Number(summary.actual['Volume']) || 0;
+  const air    = Number(summary.actual['Air Volume']) || 0;
+  return ground + air;
+}
+function volumeBreakdownText(summary){
+  if(DATA.seasTwi && DATA.seasTwi.totalVol > 0){
+    const d = DATA.seasTwi.date ? ` · date: ${DATA.seasTwi.date}` : '';
+    return `${DATA.seasTwi.totalVol.toLocaleString()} (SVQ Twilight Scan Tot${d})`;
+  }
+  if(!summary || !summary.actual) return '';
+  const ground = Number(summary.actual['Volume']) || 0;
+  const air    = Number(summary.actual['Air Volume']) || 0;
+  if(air > 0) return `${ground.toLocaleString()} ground + ${air.toLocaleString()} air = ${(ground+air).toLocaleString()}`;
+  return `${ground.toLocaleString()} (no Air Volume)`;
+}
+
+function misloadBadge(volume, count){
+  if(!count || !volume) return {stripe:'stripe-neutral', txt:'—'};
+  const freq = volume / count;
+  // goal 1/2500 — higher = better
+  const stripe = freq >= 2500 ? 'stripe-green' : 'stripe-red';
+  return {stripe, txt:`1/${Math.round(freq).toLocaleString()}`};
+}
+function libBadge(volume, count){
+  if(!count || !volume) return {stripe:'stripe-neutral', txt:'—'};
+  const freq = volume / count;
+  const stripe = freq >= 1000 ? 'stripe-green' : 'stripe-red';
+  return {stripe, txt:`1/${Math.round(freq).toLocaleString()}`};
+}
+function cubeBadge(){
+  // % of TFCS>=95 loads at Util >=75 (the corporate goal metric)
+  const high = DATA.cube.highTfcsRows || [];
+  if(!high.length) return {stripe:'stripe-neutral', txt:'—', pct:0};
+  const good = high.filter(r=>r.util >= 75).length;
+  const pct = (good / high.length) * 100;
+  let stripe = 'stripe-deepred';
+  if(pct >= 75) stripe = 'stripe-green';
+  else if(pct >= 65) stripe = 'stripe-orange';
+  else if(pct >= 50) stripe = 'stripe-yellow';
+  return {stripe, txt:`${pct.toFixed(1)}% @ Util≥75`, pct};
+}
+function cubeAvgUtil(rows){
+  if(!rows || !rows.length) return 0;
+  return rows.reduce((a,r)=>a+(r.util||0),0) / rows.length;
+}
+function cubeUtilStripe(avgUtil){
+  // Match the band coloring used elsewhere: <65 deep red, <70 red, <75 orange, <80 green, 80+ deep green
+  if(avgUtil < 65) return 'stripe-deepred';
+  if(avgUtil < 70) return 'stripe-red';
+  if(avgUtil < 75) return 'stripe-orange';
+  if(avgUtil < 80) return 'stripe-green';
+  return 'stripe-deepgreen';
+}
+function cubeAllBadge(){
+  const rows = DATA.cube.rows || [];
+  if(!rows.length) return {stripe:'stripe-neutral', txt:'—', pct:0};
+  const avg = cubeAvgUtil(rows);
+  return {stripe: cubeUtilStripe(avg), txt:`${avg.toFixed(1)}% avg`, pct:avg};
+}
+function cubeHighBadge(){
+  const rows = DATA.cube.highTfcsRows || [];
+  if(!rows.length) return {stripe:'stripe-neutral', txt:'—', pct:0};
+  const avg = cubeAvgUtil(rows);
+  return {stripe: cubeUtilStripe(avg), txt:`${avg.toFixed(1)}% avg`, pct:avg};
+}
+
+/* Resolve which OS the Cube tables/charts should filter on.
+   - "auto" follows the SPR file's sort code (-T/-D/-N).
+   - "all" shows everything.
+   - Explicit T/D/N override regardless of SPR. */
+function activeCubeOS(){
+  const sel = document.getElementById('cubeOSFilter');
+  const v = sel ? sel.value : 'auto';
+  if(v === 'all') return null;
+  if(v === 'auto') return DATA.sortCode || null;
+  return v;
+}
+function cubeOSLabel(){
+  const os = activeCubeOS();
+  const map = {T:'Twilight', D:'Day', N:'Night', G:'Ground', A:'Air'};
+  return os ? (map[os] || os) : 'All';
+}
+function activeCubeRows(){
+  const os = activeCubeOS();
+  const rows = DATA.cube.rows || [];
+  return os ? rows.filter(r => r.os === os) : rows;
+}
+
+/* OS-aware Cube tile.
+   Aggregated Util % = Σ(Total Loaded Cube) / Σ(Total Equip Cap) × 100
+   This matches how the operation reports utilization across many loads. */
+function cubeOSStats(filterFn){
+  const rows = (DATA.cube.rows || []).filter(filterFn);
+  let lc = 0, ec = 0, simple = 0, n = 0, loadCount = 0;
+  rows.forEach(r=>{
+    if(r.totLoads > 0) loadCount += r.totLoads;
+    if(r.totLoadedCube > 0) lc += r.totLoadedCube;
+    if(r.totEquipCap > 0)   ec += r.totEquipCap;
+    if(r.util != null){ simple += r.util; n++; }
+  });
+  const agg = ec > 0 ? (lc / ec * 100) : 0;
+  return {count: loadCount, agg, simple: n ? simple/n : 0};
+}
+function cubeStripeForGoal(actual, goal){
+  if(actual == null || isNaN(actual)) return 'stripe-neutral';
+  if(actual >= goal) return 'stripe-green';
+  if(actual >= goal - 5) return 'stripe-orange';
+  return 'stripe-red';
+}
+// v2.6: Division cube goal is now editable via the Cube tab input.
+// CUBE_GOAL_OVERALL kept as a fallback default; live value read via _cubeGoal().
+const CUBE_GOAL_OVERALL = 62.2;
+const CUBE_GOAL_HIGH    = 75.0;   // Goal for TFCS≥95 segment — fixed
+
+function _cubeGoal() {
+  const el = document.getElementById('cubeGoalInput');
+  const v  = el ? parseFloat(el.value) : NaN;
+  return (isFinite(v) && v > 0) ? v : CUBE_GOAL_OVERALL;
+}
+function _onCubeGoalChange() {
+  try { localStorage.setItem('dash_cube_goal', document.getElementById('cubeGoalInput').value); } catch(e){}
+  renderCubeTab();
+}
+// Restore persisted goal on load
+(function(){ try {
+  const saved = localStorage.getItem('dash_cube_goal');
+  if(saved) { const el = document.getElementById('cubeGoalInput'); if(el) el.value = saved; }
+} catch(e){} })();
+
+/* Renders the 4 OS-based tiles into a target div. Returns HTML string. */
+function renderCubeTilesHTML(){
+  const osLabel  = cubeOSLabel();
+  const osCode   = activeCubeOS() || 'All';
+  const allOS    = cubeOSStats(r => r.os);
+  const allHigh  = cubeOSStats(r => r.os && r.tfcs >= 95);
+  const os       = activeCubeOS();                                    // v1.8.2: use selected OS, not hardcoded 'T'
+  const tOS      = cubeOSStats(r => !os || r.os === os);
+  const tHigh    = cubeOSStats(r => (!os || r.os === os) && r.tfcs >= 95);
+  const goalOvr  = _cubeGoal();   // v2.6: live editable goal
+
+  const k = (label, count, agg, sub, stripe)=>`
+    <div class="kpi"><div class="kpi-stripe ${stripe||'stripe-neutral'}"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div>
+      <div class="kpi-val">${agg.toFixed(1)}<span style="font-size:14px;color:var(--muted);font-weight:500">% util</span></div>
+      <div class="kpi-sub"><strong style="color:var(--text)">${count}</strong> loads · ${sub}</div>
+    </div>`;
+  const goalLabel = (g)=>`goal ${g.toFixed(1)}%`;
+  return [
+    k('Cube — Overall Division (all OS)', allOS.count, allOS.agg, goalLabel(goalOvr), cubeStripeForGoal(allOS.agg, goalOvr)),
+    k('Cube — All OS, TFCS≥95', allHigh.count, allHigh.agg, goalLabel(CUBE_GOAL_HIGH), cubeStripeForGoal(allHigh.agg, CUBE_GOAL_HIGH)),
+    k(`Cube — ${osLabel} (OS=${osCode})`, tOS.count, tOS.agg, goalLabel(goalOvr), cubeStripeForGoal(tOS.agg, goalOvr)),
+    k(`Cube — ${osLabel} TFCS≥95`, tHigh.count, tHigh.agg, goalLabel(CUBE_GOAL_HIGH), cubeStripeForGoal(tHigh.agg, CUBE_GOAL_HIGH))
+  ].join('');
+}
+
+function renderOverview(){
+  const grid = document.getElementById('kpiGrid');
+  if(!DATA.summary){ grid.innerHTML = '<div class="empty-msg">No data — upload SPR file</div>'; return; }
+  const S = DATA.summary;
+  const netVol = S.actual['Volume'];
+  const planVol = S.planned['Volume'];
+  const pph = S.actual['PPH'];
+  const paidDay = S.actual['Paid Day'];
+  const totalHours = S.actual['Hours'];
+  const headcount = S.actual['Worked'];
+  const flowHour = S.actual['Flow Per Hour'];
+  const smalls = S.actual['% Smalls'];
+  const planSmalls = S.planned['% Smalls'];
+  const sortSpan = S.actual['Sort Span'];
+  const planSortSpan = S.planned['Sort Span'];
+
+  const misloadCount = (DATA.misloads.rows||[]).length;
+  // Misload denominator = Ground Volume + Air Volume (total packages handled), not just Ground Net Volume.
+  const handledVol = totalHandledVolume(S);
+  // LIB volume comes from LIB Breakdown Worksheet (B3) — different date than SPR. Total LIB from B-col "LIB Total".
+  const libVol = (DATA.lib && DATA.lib.volume) || 0;
+  const libCount = (DATA.lib && DATA.lib.totalLIB != null) ? DATA.lib.totalLIB : (DATA.lib.rows||[]).length;
+  const ml = misloadBadge(handledVol, misloadCount);
+  const lib = libBadge(libVol, libCount);
+  // Note: Old single Cube tiles (All / TFCS≥95 / Cube Score) replaced with 4 OS-based tiles via renderCubeTilesHTML()
+
+  function k(label, val, sub, stripe){
+    return `<div class="kpi"><div class="kpi-stripe ${stripe||'stripe-neutral'}"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div>
+      <div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+  }
+  // Cost/Piece = Total Hours / Net PPH; compare to Planned Hours / Planned Net PPH (lower is better)
+  // Captures the all-in cost of handling each package — direct + indirect hours absorbed per unit of productivity
+  const cppActual = (pph && pph>0 && totalHours!=null) ? (totalHours / pph) : null;
+  const cppPlan   = (S.planned['PPH'] && S.planned['PPH']>0 && S.planned['Hours']!=null) ? (S.planned['Hours'] / S.planned['PPH']) : null;
+  let cppStripe = 'stripe-neutral';
+  if(cppActual!=null && cppPlan!=null) cppStripe = (cppActual <= cppPlan) ? 'stripe-green' : 'stripe-red';
+
+  const cards = [
+    k('Net Volume', fmt(netVol), `Plan ${fmt(planVol)}`, colorBadgeStripe('Volume', planVol, netVol)),
+    k('Actual PPH', fmt(pph,1), `Plan ${fmt(S.planned['PPH'],1)}`, colorBadgeStripe('PPH', S.planned['PPH'], pph)),
+    k('Paid Day', fmt(paidDay,2), `Plan ${fmt(S.planned['Paid Day'],2)}`, colorBadgeStripe('Paid Day', S.planned['Paid Day'], paidDay)),
+    k('Cost / Piece', cppActual!=null?fmt(cppActual,3):'—', `Plan ${cppPlan!=null?fmt(cppPlan,3):'—'} · total hours ÷ net PPH`, cppStripe),
+    k('Total Hours', fmt(totalHours,1), `Plan ${fmt(S.planned['Hours'],1)} · direct + indirect`, colorBadgeStripe('Hours', S.planned['Hours'], totalHours)),
+    k('Headcount', fmt(headcount), `PAYACTUAL · ${DATA.payCodeDistinctEmps['PAYACTUAL']||0} distinct`, 'stripe-neutral'),
+    k('Flow / Hour', fmt(flowHour), `Plan ${fmt(S.planned['Flow Per Hour'])}`, colorBadgeStripe('Flow Per Hour', S.planned['Flow Per Hour'], flowHour)),
+    k('% Smalls', smalls!=null?(smalls*100).toFixed(2)+'%':'—', `Plan ${planSmalls!=null?(planSmalls*100).toFixed(2)+'%':'—'}`, colorBadgeStripe('% Smalls', planSmalls, smalls)),
+    k('Sort Span', sortSpan!=null?sortSpan.toFixed(2)+' h':'—', `Plan ${planSortSpan!=null?planSortSpan.toFixed(2)+' h':'—'}`, colorBadgeStripe('Sort Span', planSortSpan, sortSpan)),
+    k('Misloads', `${misloadCount} <span style="font-size:11px;color:var(--muted)">(${ml.txt})</span>`, `goal 1/2,500 · vol ${volumeBreakdownText(S)}`, ml.stripe),
+    k('LIB (Total)', `${libCount} <span style="font-size:11px;color:var(--muted)">(${lib.txt})</span>`, (DATA.lib && DATA.lib.date ? `Reporting date: ${DATA.lib.date} · ` : '') + `goal 1/1,000 · lags SPR ~2 days`, lib.stripe)
+  ];
+  // Append the 4 OS-based Cube tiles (mirrored from the Cube tab)
+  grid.innerHTML = cards.join('') + renderCubeTilesHTML();
+
+  // Date note
+  const dn = [];
+  if(DATA.sortDate) dn.push(`Sort: ${DATA.sortDate}`);
+  if(DATA.misloads.date) dn.push(`Misloads: ${DATA.misloads.date}`);
+  if(DATA.lib.date) dn.push(`LIB: ${DATA.lib.date}`);
+  if(DATA.cube.date) dn.push(`Cube: ${DATA.cube.date}`);
+  document.getElementById('ovDateNote').textContent = dn.join(' · ');
+
+  // Charts
+  // Dual-axis Plan vs Actual: large-scale metrics (Volume, Hours, PPH, Flow/Hr) on left axis,
+  // small-scale metrics (% Smalls, Paid Day, Sort Span) on right axis.
+  // Volume normalized to thousands and Flow to thousands so they're comparable in magnitude.
+  const paLabels = ['Volume (k)','Hours','PPH','Flow/Hr (k)','Paid Day','% Smalls','Sort Span (h)'];
+  const paPlanned = [
+    (S.planned['Volume']||0)/1000, S.planned['Hours']||0, S.planned['PPH']||0, (S.planned['Flow Per Hour']||0)/1000,
+    S.planned['Paid Day']||0, (S.planned['% Smalls']||0)*100, S.planned['Sort Span']||0
+  ];
+  const paActual = [
+    (S.actual['Volume']||0)/1000, S.actual['Hours']||0, S.actual['PPH']||0, (S.actual['Flow Per Hour']||0)/1000,
+    S.actual['Paid Day']||0, (S.actual['% Smalls']||0)*100, S.actual['Sort Span']||0
+  ];
+  // First 4 indices use yLeft (large-magnitude); last 3 use yRight (small-magnitude)
+  const planLeft = paPlanned.map((v,i)=> i<4 ? v : null);
+  const planRight= paPlanned.map((v,i)=> i>=4 ? v : null);
+  const actLeft  = paActual.map((v,i)=> i<4 ? v : null);
+  const actRight = paActual.map((v,i)=> i>=4 ? v : null);
+
+  makeChart('chartPlanActual', {
+    type:'bar',
+    data:{ labels: paLabels, datasets:[
+      {label:'Planned (large)', backgroundColor:'rgba(124,133,168,.85)', data:planLeft, yAxisID:'yLeft', stack:'plan'},
+      {label:'Actual (large)',  backgroundColor:C.accent, data:actLeft,  yAxisID:'yLeft', stack:'actual'},
+      {label:'Planned (small)', backgroundColor:'rgba(167,139,250,.55)', data:planRight, yAxisID:'yRight', stack:'plan'},
+      {label:'Actual (small)',  backgroundColor:C.purple, data:actRight, yAxisID:'yRight', stack:'actual'}
+    ]},
+    options:{
+      plugins:{
+        legend:{labels:{color:C.text, boxWidth:12, padding:8}, position:'top'},
+        tooltip:{callbacks:{
+          label: (ctx)=>{
+            const i = ctx.dataIndex;
+            const raw = ctx.parsed.y;
+            if(raw == null) return '';
+            const ds = ctx.dataset.label || '';
+            let display = raw;
+            if(paLabels[i].includes('Volume') || paLabels[i].includes('Flow')) display = (raw*1000).toLocaleString(undefined,{maximumFractionDigits:0});
+            else display = raw.toFixed(2);
+            const unit = paLabels[i].includes('% Smalls') ? '%' : '';
+            return `${ds}: ${display}${unit}`;
+          }
+        }}
+      },
+      scales:{
+        yLeft:  {type:'linear', position:'left',  beginAtZero:true, title:{display:true, text:'Vol (k) · Hours · PPH · Flow (k)', color:C.muted, font:{size:10}}},
+        yRight: {type:'linear', position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, title:{display:true, text:'PaidDay · %Smalls · SortSpan', color:C.muted, font:{size:10}}}
+      },
+      responsive:true, maintainAspectRatio:false
+    }
+  });
+
+  makeChart('chartHoursMix', {
+    type:'doughnut',
+    data:{ labels:['Direct Hours','Indirect Hours'],
+      datasets:[{data:[S.actual['Direct Hours']||0, S.actual['Indirect Hours']||0],
+                 backgroundColor:[C.accent, C.purple]}]},
+    options:{plugins:{legend:{position:'right'}}, responsive:true, maintainAspectRatio:false}
+  });
+
+  // Coord Group Net PPH chart — production groups only, real per-WA volume + hours from Work Area Types
+  // Primary processes the same package across multiple stages (UNL→SRT→SEC/INC) so summing double-counts.
+  // For Primary, use building Net Volume from Summary (single-touch count). For other groups, summing is correct
+  // (each package flows through exactly one PD-* area and one SML-* area).
+  const wap = DATA.workAreaProd || {};
+  const cgNet = {}; // coord -> {vol, hours}
+  Object.values(wap).forEach(w=>{
+    if(!isProduction(w.coord)) return;
+    if(!cgNet[w.coord]) cgNet[w.coord] = {vol:0, hours:0, planVol:0, planHours:0};
+    if(w.coord !== 'Primary'){
+      cgNet[w.coord].vol += w.netVol;
+      cgNet[w.coord].planVol += w.planNetVol;
+    }
+    cgNet[w.coord].hours += w.hours;
+    cgNet[w.coord].planHours += (w.planNetPPH > 0 ? w.planNetVol/w.planNetPPH : 0);
+  });
+  // Primary: use building total Net Volume from Summary (avoids double-counting across stages)
+  if(cgNet['Primary']){
+    cgNet['Primary'].vol = S.actual['Volume'] || 0;
+    cgNet['Primary'].planVol = S.planned['Volume'] || 0;
+  }
+  const order = ['PD1-4','PD5-8','PD9-12','Primary','Smalls Sort'];
+  const labels = order.filter(k=>cgNet[k] && cgNet[k].hours > 0);
+  const actualPPH = labels.map(k=> cgNet[k].hours ? cgNet[k].vol / cgNet[k].hours : 0);
+  const plannedPPH = labels.map(k=> cgNet[k].planHours ? cgNet[k].planVol / cgNet[k].planHours : 0);
+
+  if(labels.length === 0){
+    destroyChart('chartCoordPPH');
+    const cv = document.getElementById('chartCoordPPH');
+    if(cv){ const ctx = cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+      ctx.fillStyle=C.muted; ctx.font='13px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Net PPH per coord group needs Work Area Types sheet from SPR', cv.width/2, cv.height/2);
+    }
+  } else {
+    makeChart('chartCoordPPH', {
+      type:'bar',
+      data:{ labels, datasets:[
+        {label:'Planned Net PPH', backgroundColor:C.muted, data:plannedPPH},
+        {label:'Actual Net PPH', backgroundColor:C.accent2, data:actualPPH}
+      ]},
+      options:{plugins:{legend:{labels:{color:C.text}}, tooltip:{callbacks:{
+        afterLabel: (ctx)=>{
+          const k = labels[ctx.dataIndex]; const d = cgNet[k];
+          return `Vol ${Math.round(d.vol).toLocaleString()} · Hrs ${d.hours.toFixed(1)}`;
+        }
+      }}}, scales:{y:{beginAtZero:true}}, responsive:true, maintainAspectRatio:false}
+    });
+  }
+}
+
+/* ----------------------- WORK AREAS TAB ----------------------- */
+function renderAreasTab(){
+  const tbody = document.querySelector('#areasTable tbody');
+  const wap = DATA.workAreaProd || {};
+  if(!Object.keys(wap).length){
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">No data — upload SPR file</td></tr>`;
+    return;
+  }
+  const filter = document.getElementById('areaCoordFilter').value;
+
+  // Production work areas only — real Net Vol & Net PPH from Work Area Types
+  let rows = Object.values(wap).filter(w => isProduction(w.coord));
+  // Hours per area from staffing (PAYACTUAL only) — fallback to derived hours from netVol/netPPH
+  const stfHours = {};
+  const stfHC = {};
+  const stfPD = {};
+  (DATA.staffing||[]).forEach(s=>{
+    if(s.payCode !== 'PAYACTUAL') return;
+    const k = s.wa;
+    if(!stfHours[k]) { stfHours[k]=0; stfHC[k] = new Set(); stfPD[k]=0; }
+    stfHours[k] += s.hours;
+    stfHC[k].add(s.id || s.name);
+    stfPD[k] += s.paidDay;
+  });
+  rows = rows.map(w=>{
+    const hcSet = stfHC[w.wa];
+    const hc = hcSet ? hcSet.size : (w.stf||0);
+    const hours = stfHours[w.wa] || w.hours;
+    const paidAvg = (hcSet && hcSet.size) ? (stfPD[w.wa] / hcSet.size) : 0;
+    // Net PPH from Work Area Types (truth) — unaffected by paid-day allocation
+    return {wa:w.wa, coord:w.coord, hc, hours, paidDay:paidAvg, vol:w.netVol, netpph:w.netPPH};
+  });
+  if(filter) rows = rows.filter(r=>r.coord === filter);
+  rows.sort((a,b)=>a.coord.localeCompare(b.coord) || a.wa.localeCompare(b.wa));
+  // Exclude specific work areas from detail table
+  const EXCLUDE_AREAS = new Set(['OUT-2A', 'OUT-19']);
+  rows = rows.filter(r => !EXCLUDE_AREAS.has(r.wa.replace(/-+$/, '').toUpperCase()));
+
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${coordBadge(r.coord)}</td>
+      <td>${escapeHTML(r.wa)}</td>
+      <td class="num">${fmt(r.hc)}</td>
+      <td class="num">${fmt(r.hours,1)}</td>
+      <td class="num">${fmt(r.paidDay,2)}</td>
+      <td class="num">${fmt(Math.round(r.vol))}</td>
+      <td class="num">${fmt(r.netpph,1)}</td>
+    </tr>`).join('') || `<tr><td colspan="7" class="empty-msg">No work areas in selected coord group</td></tr>`;
+
+  // Charts: roll up by coord group from real per-WA numbers
+  // Primary uses building total (avoids UNL+SRT+SEC double-count); others sum (single-touch flows)
+  const cgRoll = {};
+  Object.values(wap).filter(w=>isProduction(w.coord)).forEach(w=>{
+    if(EXCLUDE_AREAS.has(w.wa.replace(/-+$/, '').toUpperCase())) return;
+    if(filter && w.coord !== filter) return;
+    if(!cgRoll[w.coord]) cgRoll[w.coord] = {vol:0, hc:new Set()};
+    if(w.coord !== 'Primary') cgRoll[w.coord].vol += w.netVol;
+    const hcSet = stfHC[w.wa];
+    if(hcSet) hcSet.forEach(id=>cgRoll[w.coord].hc.add(id));
+  });
+  if(cgRoll['Primary'] && DATA.summary){
+    cgRoll['Primary'].vol = (DATA.summary.actual['Volume'] || 0);
+  }
+  const order = ['PD1-4','PD5-8','PD9-12','Primary','Smalls Sort'];
+  const groupKeys = order.filter(k=>cgRoll[k]);
+  const groupVols = groupKeys.map(k=>cgRoll[k].vol);
+  const groupHc = groupKeys.map(k=>cgRoll[k].hc.size);
+
+  makeChart('chartAreaVol', {
+    type:'bar',
+    data:{labels:groupKeys, datasets:[{label:'Net Volume', data:groupVols, backgroundColor:C.accent}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+  makeChart('chartAreaHC', {
+    type:'bar',
+    data:{labels:groupKeys, datasets:[{label:'Headcount', data:groupHc, backgroundColor:C.accent2}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+}
+
+/* ----------------------- STAFFING TAB ----------------------- */
+function renderStaffingTab(){
+  const sk = document.getElementById('staffKpis');
+  const pk = document.getElementById('payCodeKpis');
+  if(!DATA.staffing || !DATA.staffing.length){
+    sk.innerHTML = '<div class="empty-msg">No data — upload SPR file</div>';
+    pk.innerHTML = '';
+    document.querySelector('#staffTable tbody').innerHTML = '';
+    return;
+  }
+  const payActual = DATA.payCodeDistinctEmps['PAYACTUAL'] || 0;
+  const summaryHC = (DATA.summary && DATA.summary.actual['Worked']) || 0;
+  // FT/PT among PAYACTUAL (distinct)
+  const ftSet = new Set(), ptSet = new Set();
+  DATA.staffing.forEach(r=>{
+    if(r.payCode !== 'PAYACTUAL') return;
+    const id = r.id || r.name;
+    if(r.ftpt === 'FT') ftSet.add(id);
+    else if(r.ftpt === 'PT') ptSet.add(id);
+  });
+
+  function k(label, val, sub){
+    return `<div class="kpi"><div class="kpi-stripe stripe-neutral"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div>
+      <div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+  }
+  sk.innerHTML = [
+    k('PAYACTUAL Headcount', fmt(payActual), `Distinct employees worked`),
+    k('Summary Worked', fmt(summaryHC), `From SPR Summary sheet`),
+    k('FT (PAYACTUAL)', fmt(ftSet.size), `${pct(ftSet.size/(payActual||1))} of worked`),
+    k('PT (PAYACTUAL)', fmt(ptSet.size), `${pct(ptSet.size/(payActual||1))} of worked`)
+  ].join('');
+
+  const watchCodes = ['29-VACATION','15-CALLEDIN','36-FAMILYLEAV','26-SCHEDLDOFF'];
+  pk.innerHTML = watchCodes.map(c=>{
+    const cnt = DATA.payCodeDistinctEmps[c] || 0;
+    return k(c, fmt(cnt), `Distinct employees`);
+  }).join('');
+
+  // Charts
+  const cg = DATA.coordGroups || {};
+  const labels = Object.keys(cg);
+  const hcArr = labels.map(k=>cg[k].hcCount||0);
+  makeChart('chartStaffCoord', {
+    type:'bar',
+    data:{labels, datasets:[{label:'Headcount', data:hcArr, backgroundColor:C.accent}]},
+    options:{plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:false}
+  });
+
+  // Paid day distribution among PAYACTUAL emps (sum paid day per emp)
+  const paidByEmp = {};
+  DATA.staffing.forEach(r=>{
+    if(r.payCode !== 'PAYACTUAL') return;
+    const id = r.id || r.name;
+    paidByEmp[id] = (paidByEmp[id]||0) + r.paidDay;
+  });
+  const buckets = ['0-2','2-3','3-4','4-5','5-6','6-7','7-8','8+'];
+  const counts = [0,0,0,0,0,0,0,0];
+  Object.values(paidByEmp).forEach(p=>{
+    if(p<2) counts[0]++;
+    else if(p<3) counts[1]++;
+    else if(p<4) counts[2]++;
+    else if(p<5) counts[3]++;
+    else if(p<6) counts[4]++;
+    else if(p<7) counts[5]++;
+    else if(p<8) counts[6]++;
+    else counts[7]++;
+  });
+  const total = counts.reduce((a,c)=>a+c,0) || 1;
+  const pctVals = counts.map(c=> (c/total)*100);
+
+  makeChart('chartPaidDayDist', {
+    type:'bar',
+    data:{labels:buckets, datasets:[{
+      label:'% of headcount', data:pctVals, backgroundColor:C.purple,
+      _counts: counts
+    }]},
+    options:{
+      plugins:{legend:{display:false}, tooltip:{callbacks:{
+        label: (ctx)=>{
+          const c = ctx.dataset._counts[ctx.dataIndex];
+          return `${ctx.parsed.y.toFixed(1)}% (${c} employees)`;
+        }
+      }}},
+      scales:{y:{beginAtZero:true, ticks:{callback:v=>v+'%'}}},
+      responsive:true, maintainAspectRatio:false
+    }
+  });
+
+  renderStaffingRoster();
+}
+
+let _staffSort = {col:'paidday', dir:'desc'};
+function renderStaffingRoster(){
+  const tbody = document.querySelector('#staffTable tbody');
+  if(!DATA.staffing.length){ tbody.innerHTML = ''; return; }
+  const cg = document.getElementById('stfCoordFilter').value;
+  const ft = document.getElementById('stfFtPtFilter').value;
+  const q = (document.getElementById('stfSearch').value||'').toLowerCase();
+  let rows = DATA.staffing.filter(r=>r.payCode==='PAYACTUAL');
+  if(cg){
+    rows = rows.filter(r=>{
+      const wa = (r.wa||'').toUpperCase();
+      // Special filters that override the parser-assigned coord group:
+      if(cg === 'Air Recovery') return wa === 'AIR-1' || /air recovery/i.test(r.wat||'');
+      if(cg === 'Clerical') return /^CLK-[1-5]$/.test(wa);
+      if(cg === 'Indirect') return r.coord === 'Indirect' && !/^CLK-[1-5]$/.test(wa) && wa !== 'AIR-1';
+      // Production groups match parser-assigned coord directly
+      return r.coord === cg;
+    });
+  }
+  if(ft) rows = rows.filter(r=>r.ftpt===ft);
+  if(q) rows = rows.filter(r=>(r.name||'').toLowerCase().includes(q) || (r.id||'').toLowerCase().includes(q));
+
+  // Sort
+  const c = _staffSort.col, dir = _staffSort.dir==='asc'?1:-1;
+  rows.sort((a,b)=>{
+    let av, bv;
+    switch(c){
+      case 'name': av=a.name; bv=b.name; break;
+      case 'id': av=a.id; bv=b.id; break;
+      case 'ftpt': av=a.ftpt; bv=b.ftpt; break;
+      case 'coord': av=a.coord; bv=b.coord; break;
+      case 'wa': av=a.wa; bv=b.wa; break;
+      case 'job': av=a.job; bv=b.job; break;
+      case 'start': av=a.start; bv=b.start; break;
+      case 'end': av=a.end; bv=b.end; break;
+      case 'hours': av=a.hours; bv=b.hours; break;
+      case 'paidday': av=a.paidDay; bv=b.paidDay; break;
+    }
+    if(typeof av === 'number' && typeof bv === 'number') return (av-bv)*dir;
+    return String(av||'').localeCompare(String(bv||''))*dir;
+  });
+
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${escapeHTML(r.name)}</td>
+      <td>${escapeHTML(r.id)}</td>
+      <td>${escapeHTML(r.ftpt)}</td>
+      <td>${coordBadge(displayCoordForRow(r))}</td>
+      <td>${escapeHTML(r.wa)}</td>
+      <td>${escapeHTML(r.job)}</td>
+      <td>${escapeHTML(r.start)}</td>
+      <td>${escapeHTML(r.end)}</td>
+      <td class="num">${fmt(r.hours,2)}</td>
+      <td class="num">${fmt(r.paidDay,2)}</td>
+    </tr>`).join('');
+
+  // Sort indicators
+  document.querySelectorAll('#staffTable th').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.col === _staffSort.col) th.classList.add(_staffSort.dir==='asc'?'sort-asc':'sort-desc');
+  });
+}
+
+/* ----------------------- iGATE TABLE ----------------------- */
+let _igateSort = {col:'pph', dir:'desc'};
+function renderIGateTable(){
+  const tbody = document.getElementById('igate-tbody');
+  const kpis  = document.getElementById('igate-kpis');
+  const rows  = (DATA.igate && DATA.igate.rows) ? DATA.igate.rows : [];
+
+  if(!rows.length){
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">No data — upload SCANTRACK Employee Summary file</td></tr>';
+    if(kpis) kpis.innerHTML = '';
+    // Clear sort indicators
+    document.querySelectorAll('#igate-table th').forEach(th=>th.classList.remove('sort-asc','sort-desc'));
+    return;
+  }
+
+  // KPI tiles: total employees, avg PPH, total packages, avg hours
+  const totalEmps  = rows.length;
+  const avgPPH     = rows.reduce((s,r)=>s+r.pph,0)  / totalEmps;
+  const totalPkgs  = rows.reduce((s,r)=>s+r.pkgs,0);
+  const avgHours   = rows.reduce((s,r)=>s+r.hours,0) / totalEmps;
+  function kpi(label, val, sub, stripe){
+    return `<div class="kpi"><div class="kpi-stripe ${stripe||'stripe-neutral'}"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div>
+      <div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+  }
+  if(kpis){
+    kpis.innerHTML = [
+      kpi('Employees (SCANTRACK)', fmt(totalEmps), 'Deduped · SLS/ASX/SS excluded', 'stripe-neutral'),
+      kpi('Avg Scan PPH', fmt(avgPPH,0), 'Mean across all employees', 'stripe-neutral'),
+      kpi('Total Packages', fmt(totalPkgs), 'Sum of employee totals', 'stripe-neutral'),
+      kpi('Avg Scan Hours', fmt(avgHours,2), 'Mean per employee', 'stripe-neutral')
+    ].join('');
+  }
+
+  // Sort
+  const col = _igateSort.col, dir = _igateSort.dir === 'asc' ? 1 : -1;
+  const sorted = [...rows].sort((a,b)=>{
+    let av = a[col], bv = b[col];
+    if(typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+    return String(av||'').localeCompare(String(bv||'')) * dir;
+  });
+
+  tbody.innerHTML = sorted.map(r=>{
+    const pc = r.pph >= 350 ? '#15803d' : r.pph >= 300 ? '#22c55e' : r.pph >= 280 ? '#f59e42' : '#991b1b';
+    return `<tr>
+      <td>${escapeHTML(r.user)}</td>
+      <td class="num">${fmt(r.pkgs)}</td>
+      <td class="num">${fmt(r.hours,2)}</td>
+      <td class="num" style="color:${pc};font-weight:600">${fmt(r.pph)}</td>
+    </tr>`;
+  }).join('');
+
+  // Sort indicators on igate-table headers
+  document.querySelectorAll('#igate-table th').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.col === _igateSort.col)
+      th.classList.add(_igateSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+/* ----------------------- OUTBOUND DATA TAB ----------------------- */
+let _empMlSort  = {col:'mlCount',  dir:'desc'};
+let _empLibSort = {col:'libCount', dir:'desc'};
+let _slsMlSort  = {col:'mlCount',  dir:'desc'};
+let _slsLibSort = {col:'libCount', dir:'desc'};
+
+/* Misload Metrics table: Employee | Scanned Volume | Misload Count | Misload Frequency */
+function _empMlTableHTML(rows, tableId, sortState, emptyMsg){
+  if(!rows || !rows.length){
+    return `<div class="empty-msg" style="padding:30px;text-align:center;color:var(--muted)">${emptyMsg}</div>`;
+  }
+  const col = sortState.col, dir = sortState.dir === 'asc' ? 1 : -1;
+  const sorted = [...rows].sort((a,b)=>{
+    let av = a[col], bv = b[col];
+    if(typeof av === 'number' && typeof bv === 'number') return (av-bv)*dir;
+    return String(av||'').localeCompare(String(bv||''))*dir;
+  });
+  function thCls(c){ return sortState.col===c ? (sortState.dir==='asc'?'sort-asc':'sort-desc') : ''; }
+  function thClick(c){ return `onclick="_sortEmpTable('${tableId}','${c}')"` }
+  const thead = `<thead><tr>
+    <th data-col="emp" class="${thCls('emp')}" ${thClick('emp')}>Employee</th>
+    <th data-col="scannedVol" class="num ${thCls('scannedVol')}" ${thClick('scannedVol')}>Scanned Volume</th>
+    <th data-col="mlCount" class="num ${thCls('mlCount')}" ${thClick('mlCount')}>Misload Count</th>
+    <th data-col="mlFreq" class="num ${thCls('mlFreq')}" ${thClick('mlFreq')}>Misload Frequency</th>
+  </tr></thead>`;
+  const tbody = `<tbody>${sorted.map(r=>`
+    <tr>
+      <td>${escapeHTML(r.emp)}</td>
+      <td class="num">${fmt(r.scannedVol)}</td>
+      <td class="num">${fmt(r.mlCount)}</td>
+      <td class="num">${r.mlFreq > 0 ? '1/'+fmt(r.mlFreq) : '—'}</td>
+    </tr>`).join('')}</tbody>`;
+  return `<table id="${tableId}">${thead}${tbody}</table>`;
+}
+
+/* LIB Metrics table: Employee | Scanned Volume | LIB Count | LIB Frequency */
+function _empLibTableHTML(rows, tableId, sortState, emptyMsg){
+  if(!rows || !rows.length){
+    return `<div class="empty-msg" style="padding:30px;text-align:center;color:var(--muted)">${emptyMsg}</div>`;
+  }
+  const col = sortState.col, dir = sortState.dir === 'asc' ? 1 : -1;
+  const sorted = [...rows].sort((a,b)=>{
+    let av = a[col], bv = b[col];
+    if(typeof av === 'number' && typeof bv === 'number') return (av-bv)*dir;
+    return String(av||'').localeCompare(String(bv||''))*dir;
+  });
+  function thCls(c){ return sortState.col===c ? (sortState.dir==='asc'?'sort-asc':'sort-desc') : ''; }
+  function thClick(c){ return `onclick="_sortEmpTable('${tableId}','${c}')"` }
+  const thead = `<thead><tr>
+    <th data-col="emp" class="${thCls('emp')}" ${thClick('emp')}>Employee</th>
+    <th data-col="scannedVol" class="num ${thCls('scannedVol')}" ${thClick('scannedVol')}>Scanned Volume</th>
+    <th data-col="libCount" class="num ${thCls('libCount')}" ${thClick('libCount')}>LIB Count</th>
+    <th data-col="libFreq" class="num ${thCls('libFreq')}" ${thClick('libFreq')}>LIB Frequency</th>
+  </tr></thead>`;
+  const tbody = `<tbody>${sorted.map(r=>`
+    <tr>
+      <td>${escapeHTML(r.emp)}</td>
+      <td class="num">${fmt(r.scannedVol)}</td>
+      <td class="num">${fmt(r.libCount)}</td>
+      <td class="num">${r.libFreq > 0 ? '1/'+fmt(r.libFreq) : '—'}</td>
+    </tr>`).join('')}</tbody>`;
+  return `<table id="${tableId}">${thead}${tbody}</table>`;
+}
+
+function _sortEmpTable(tableId, col){
+  const st = tableId === 'emp-ml-table'  ? _empMlSort
+           : tableId === 'emp-lib-table' ? _empLibSort
+           : tableId === 'sls-ml-table'  ? _slsMlSort
+           : _slsLibSort;
+  if(st.col === col) st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+  else { st.col = col; st.dir = 'desc'; }
+  renderOutboundTab();
+}
+
+let _smallsBinSort = {col:'mlCount', dir:'desc'};
+function _sortSmallsBinTable(col){
+  if(_smallsBinSort.col === col) _smallsBinSort.dir = _smallsBinSort.dir === 'asc' ? 'desc' : 'asc';
+  else { _smallsBinSort.col = col; _smallsBinSort.dir = 'desc'; }
+  renderSmallsTab();
+}
+
+/* ─────────────────────────── SMALLS DATA TAB ───────────────────────────── */
+function renderSmallsTab(){
+  const page = document.getElementById('page-smalls');
+  if(!page) return;
+
+  // 1. Data extraction
+  const S = DATA.summary;
+  const hasSummary = !!(S && S.actual);
+  
+  const smallsPctAct  = hasSummary ? S.actual['% Smalls'] : null;
+  const smallsPctPlan = hasSummary ? S.planned['% Smalls'] : null;
+  const volAct        = hasSummary ? S.actual['Volume'] : 0;
+  const volPlan       = hasSummary ? S.planned['Volume'] : 0;
+  
+  const smallsVolAct  = hasSummary && smallsPctAct != null ? volAct * smallsPctAct : null;
+  const smallsVolPlan = hasSummary && smallsPctPlan != null ? volPlan * smallsPctPlan : null;
+
+  // Misloads
+  const mlRows = (DATA.misloads.rows||[]).filter(r => r.coord === 'Smalls Sort' || r.area === 'SMALLS SORT' || r.area === 'SMALLS');
+  const mlCount = mlRows.length;
+  
+  const byNextScan = {};
+  const byDest = {};
+  const byPattern = {};
+  
+  mlRows.forEach(r => {
+    if(r.nextScan) byNextScan[r.nextScan] = (byNextScan[r.nextScan]||0) + 1;
+    if(r.dest) byDest[r.dest] = (byDest[r.dest]||0) + 1;
+    if(r.planFlow && r.nextScan) {
+      const p = `${r.planFlow}|||${r.nextScan}`;
+      byPattern[p] = (byPattern[p]||0) + 1;
+    }
+  });
+
+  // LIB
+  const libRows = (DATA.lib.rows||[]).filter(r => (r.area||'').toUpperCase().includes('SML') || r.area === 'SMALLS' || r.area === 'SMALLS SORT');
+  const libCount = libRows.length;
+
+  if(!hasSummary && !mlCount && !libCount) {
+    page.innerHTML = `<div class="section-title">Smalls Data Metrics</div>
+      <div class="empty-msg">No data — upload SPR, SVQ Misloads, or LIB Breakdown file</div>`;
+    return;
+  }
+
+  // 2. HTML Layout
+  function k(label, val, sub, stripe){
+    return `<div class="kpi"><div class="kpi-stripe ${stripe||'stripe-neutral'}"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div>
+      <div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+  }
+
+  let html = `<div class="section-title">Smalls Data KPIs</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
+      * Misload & LIB counts below reflect strictly the filtered records assigned to the "Smalls Sort" work area.<br>
+      These are typically excluded from the main Misloads/LIB tabs to reduce noise.
+    </div>
+    <div class="kpi-grid">`;
+  
+  html += k('Smalls Volume', smallsVolAct!=null ? fmt(smallsVolAct) : '—', `Plan ${smallsVolPlan!=null ? fmt(smallsVolPlan) : '—'}`, colorBadgeStripe('Volume', smallsVolPlan, smallsVolAct));
+  html += k('% Smalls', smallsPctAct!=null ? (smallsPctAct*100).toFixed(2)+'%' : '—', `Plan ${smallsPctPlan!=null ? (smallsPctPlan*100).toFixed(2)+'%' : '—'}`, colorBadgeStripe('% Smalls', smallsPctPlan, smallsPctAct));
+  html += k('Smalls Misloads', fmt(mlCount), 'Total occurrences recorded in SVQ', 'stripe-orange');
+  html += k('Smalls LIB', fmt(libCount), 'Total occurrences recorded in LIB Breakdown', 'stripe-orange');
+  html += `</div>`;
+
+  html += `<div class="charts-row">
+      <div class="chart-card"><div class="chart-title">Misloads by Next Scan (Smalls)</div><div class="chart-wrap"><canvas id="chartSmallsNextScan"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Top Missed Destinations (Smalls)</div><div class="chart-wrap"><canvas id="chartSmallsDest"></canvas></div></div>
+    </div>`;
+
+  html += `<div class="section-title">Top 15 repeat misload patterns (Smalls Sort)</div>
+    <div class="table-card">
+      <table id="smallsPatterns"><thead><tr>
+        <th>Plan Flow (intended)</th>
+        <th>Next Scan (where it went)</th>
+        <th class="num">Count</th>
+      </tr></thead><tbody>`;
+  
+  const patArr = Object.entries(byPattern).sort((a,b)=>b[1]-a[1]).slice(0, 15);
+  if(patArr.length === 0){
+    html += `<tr><td colspan="3" class="empty-msg">No repeat misload patterns recorded for Smalls Sort</td></tr>`;
+  } else {
+    html += patArr.map(p => {
+      const [pf, ns] = p[0].split('|||');
+      return `<tr><td>${escapeHTML(pf)}</td><td>${escapeHTML(ns)}</td><td class="num">${p[1]}</td></tr>`;
+    }).join('');
+  }
+  html += `</tbody></table></div>`;
+
+  // SLS Bin Metrics Table
+  const em = DATA.empMetrics || {slsRows:[]};
+  const slsRows = em.slsRows.slice();
+  
+  if(slsRows.length > 0){
+    const col = _smallsBinSort.col, dir = _smallsBinSort.dir === 'asc' ? 1 : -1;
+    slsRows.sort((a,b)=>{
+      let av = a[col], bv = b[col];
+      if(typeof av === 'number' && typeof bv === 'number') return (av-bv)*dir;
+      return String(av||'').localeCompare(String(bv||''))*dir;
+    });
+
+    function thCls(c){ return _smallsBinSort.col===c ? (_smallsBinSort.dir==='asc'?'sort-asc':'sort-desc') : ''; }
+    function thClick(c){ return `onclick="_sortSmallsBinTable('${c}')"` }
+
+    html += `<div class="section-title">SLS Bin Metrics</div>
+      <div class="table-card" style="max-height:400px;overflow-y:auto">
+        <table id="smallsBinTable">
+          <thead><tr>
+            <th data-col="emp" class="${thCls('emp')}" ${thClick('emp')}>Bin</th>
+            <th data-col="scannedVol" class="num ${thCls('scannedVol')}" ${thClick('scannedVol')}>Scanned Vol</th>
+            <th data-col="mlCount" class="num ${thCls('mlCount')}" ${thClick('mlCount')}>Misloads</th>
+            <th data-col="mlFreq" class="num ${thCls('mlFreq')}" ${thClick('mlFreq')}>Misload Freq</th>
+            <th data-col="libCount" class="num ${thCls('libCount')}" ${thClick('libCount')}>LIBs</th>
+            <th data-col="libFreq" class="num ${thCls('libFreq')}" ${thClick('libFreq')}>LIB Freq</th>
+          </tr></thead>
+          <tbody>${slsRows.map(r=>`
+            <tr>
+              <td>${escapeHTML(r.emp)}</td>
+              <td class="num">${fmt(r.scannedVol)}</td>
+              <td class="num">${fmt(r.mlCount)}</td>
+              <td class="num">${r.mlFreq > 0 ? '1/'+fmt(r.mlFreq) : '—'}</td>
+              <td class="num">${fmt(r.libCount)}</td>
+              <td class="num">${r.libFreq > 0 ? '1/'+fmt(r.libFreq) : '—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  page.innerHTML = html;
+
+  // 3. Render Charts
+  const nsArr = Object.entries(byNextScan).sort((a,b)=>b[1]-a[1]).slice(0, 12);
+  makeChart('chartSmallsNextScan', {
+    type:'bar',
+    data:{labels: nsArr.map(x=>x[0]), datasets:[{data: nsArr.map(x=>x[1]), backgroundColor:C.accent2}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+
+  const destArr = Object.entries(byDest).sort((a,b)=>b[1]-a[1]).slice(0, 12);
+  makeChart('chartSmallsDest', {
+    type:'bar',
+    data:{labels: destArr.map(x=>x[0]), datasets:[{data: destArr.map(x=>x[1]), backgroundColor:C.purple}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+}
+
+function renderOutboundTab(){
+  const em = DATA.empMetrics || {empRows:[], slsRows:[]};
+
+  // Section 2 — Employee Misload Metrics + Employee LIB Metrics (side by side)
+  const empSec = document.getElementById('emp-metrics-section');
+  if(empSec){
+    empSec.innerHTML = `
+      <div class="section-title">Employee Scan Metrics</div>
+      <div style="display:flex; gap:16px; align-items:flex-start;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Employee Misload Metrics</div>
+          <div class="table-card" style="max-height:380px;overflow-y:auto">
+            ${_empMlTableHTML(em.empRows, 'emp-ml-table', _empMlSort, 'No data — upload Employee Data file')}
+          </div>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Employee LIB Metrics</div>
+          <div class="table-card" style="max-height:380px;overflow-y:auto">
+            ${_empLibTableHTML(em.empRows, 'emp-lib-table', _empLibSort, 'No data — upload Employee Data file')}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Section 3 — SLS Misload Metrics + SLS LIB Metrics (side by side)
+  const slsSec = document.getElementById('sls-metrics-section');
+  if(slsSec){
+    slsSec.innerHTML = `
+      <div class="section-title">SLS Scan Metrics — Single-Line Sorter</div>
+      <div style="display:flex; gap:16px; align-items:flex-start;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">SLS Misload Metrics</div>
+          <div class="table-card" style="max-height:380px;overflow-y:auto">
+            ${_empMlTableHTML(em.slsRows, 'sls-ml-table', _slsMlSort, 'No SLS entries in uploaded file')}
+          </div>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">SLS LIB Metrics</div>
+          <div class="table-card" style="max-height:380px;overflow-y:auto">
+            ${_empLibTableHTML(em.slsRows, 'sls-lib-table', _slsLibSort, 'No SLS entries in uploaded file')}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Section 1 — SCANTRACK table (re-render with current sort state)
+  renderIGateTable();
+}
+/* ----------------------- MISLOADS TAB ----------------------- */
+function renderMisloadTab(){
+  const kp = document.getElementById('misloadKpis');
+  // Accept either legacy misload file OR SVQ Twilight summary
+  const hasMisloadData = (DATA.misloads && DATA.misloads.rows.length) || (DATA.seasTwi && DATA.seasTwi.totalMisloads > 0);
+  if(!hasMisloadData){
+    kp.innerHTML = '<div class="empty-msg">No data — upload SVQ Twilight Summary or Misload file</div>';
+    document.querySelector('#mlPatterns tbody').innerHTML = '';
+    document.querySelector('#mlDetail tbody').innerHTML = '';
+    return;
+  }
+  // When SVQ Twilight is available, its total misloads + volume are authoritative for KPIs
+  const seasTwiAvail = DATA.seasTwi && DATA.seasTwi.totalMisloads > 0;
+  const cgFilter = (document.getElementById('mlCoordFilter') && document.getElementById('mlCoordFilter').value) || '';
+  // When SVQ Twilight file available: use its per-area rows for aggregates
+  // When legacy misload raw file available: use its row-level data for filtering
+  const rows = cgFilter ? DATA.misloads.rows.filter(r => r.coord === cgFilter) : DATA.misloads.rows;
+  // Total misloads: seasTwi total when available, otherwise row count from legacy file
+  const total = seasTwiAvail ? (cgFilter ?
+    (DATA.seasTwi.byCoord[cgFilter] ? DATA.seasTwi.byCoord[cgFilter].misloads : 0) :
+    DATA.seasTwi.totalMisloads) : rows.length;
+
+  // Recompute slices over the filtered set so charts/KPIs respect the coord-group filter
+  const errBreak = {}, byNextScan = {}, byArea = {}, byDest = {}, byPattern = {}, byCoord = {};
+  rows.forEach(r=>{
+    errBreak[r.err] = (errBreak[r.err]||0)+1;
+    if(r.nextScan) byNextScan[r.nextScan] = (byNextScan[r.nextScan]||0)+1;
+    byArea[r.area] = (byArea[r.area]||0)+1;
+    if(r.dest) byDest[r.dest] = (byDest[r.dest]||0)+1;
+    if(r.planFlow && r.nextScan) byPattern[`${r.planFlow}|||${r.nextScan}`] = (byPattern[`${r.planFlow}|||${r.nextScan}`]||0)+1;
+    byCoord[r.coord] = (byCoord[r.coord]||0)+1;
+  });
+
+  // Misload denominator = Ground Volume + Air Volume (total handled), not just Ground Net Volume.
+  // Without Air Volume the freq under-divides. Air Volume is often blank for non-air-heavy sorts.
+  const handledVol = totalHandledVolume(DATA.summary);
+  const ml = misloadBadge(handledVol, total);
+
+  function k(label, val, sub, stripe){
+    return `<div class="kpi"><div class="kpi-stripe ${stripe||'stripe-neutral'}"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div><div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+  }
+  const filterNote = cgFilter ? ` · Filter: ${cgFilter}` : '';
+  const volNote = volumeBreakdownText(DATA.summary);
+  kp.innerHTML = [
+    k('Total Misloads', fmt(total), (DATA.misloads.date ? `Window: ${DATA.misloads.date}` : '') + filterNote, 'stripe-neutral'),
+    k('Misload Frequency', ml.txt, `goal 1/2,500 ${ml.stripe==='stripe-green'?'met':'missed'} · vol ${volNote}${cgFilter?' · subset vs. building vol':''}`, ml.stripe),
+    k('Top Error Type', Object.keys(errBreak).sort((a,b)=>errBreak[b]-errBreak[a])[0]||'—', `${Object.keys(errBreak).length} types`, 'stripe-neutral'),
+    k('Unique Destinations Hit', fmt(Object.keys(byDest).length), '', 'stripe-neutral')
+  ].join('');
+
+  document.getElementById('mlDateNote').textContent = DATA.misloads.date ? `Date range: ${DATA.misloads.date}` : '';
+
+  const ns = Object.entries(byNextScan).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  makeChart('chartMlNextScan', {
+    type:'bar',
+    data:{labels:ns.map(x=>x[0]), datasets:[{data:ns.map(x=>x[1]), backgroundColor:C.warn}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+
+  const ar = Object.entries(byArea).sort((a,b)=>b[1]-a[1]);
+  makeChart('chartMlArea', {
+    type:'bar',
+    data:{labels:ar.map(x=>x[0]), datasets:[{data:ar.map(x=>x[1]), backgroundColor:C.accent}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+
+  const dst = Object.entries(byDest).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  makeChart('chartMlDest', {
+    type:'bar',
+    data:{labels:dst.map(x=>x[0]), datasets:[{data:dst.map(x=>x[1]), backgroundColor:C.purple}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+
+  const pat = Object.entries(byPattern).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  document.querySelector('#mlPatterns tbody').innerHTML = pat.map(([k,v])=>{
+    const [pf, ns2] = k.split('|||');
+    return `<tr><td>${escapeHTML(pf)}</td><td>${escapeHTML(ns2)}</td><td class="num">${fmt(v)}</td></tr>`;
+  }).join('') || `<tr><td colspan="3" class="empty-msg">No patterns</td></tr>`;
+
+  const aSel = document.getElementById('mlAreaFilter');
+  const cur = aSel.value;
+  aSel.innerHTML = `<option value="">All</option>` + ar.map(x=>`<option value="${escapeHTML(x[0])}">${escapeHTML(x[0])} (${x[1]})</option>`).join('');
+  aSel.value = cur;
+
+  renderMisloadDetail();
+}
+/* Misload frequency badge helper (for detail table).
+   goal 1/2500 → freq = vol/count. Green if >= 2500, red if < 2500. */
+function mlFreqBadge(vol, count){
+  if(!count) return '<span class="badge badge-info">0 misloads</span>';
+  if(!vol)   return '<span style="color:var(--muted)">—</span>';
+  const freq = vol / count;
+  const cls = freq >= 2500 ? 'badge-good' : 'badge-bad';
+  return `<span class="badge ${cls}">1/${Math.round(freq).toLocaleString()}</span>`;
+}
+
+function renderMisloadDetail(){
+  const tbody = document.querySelector('#mlDetail tbody');
+  const cg = (document.getElementById('mlCoordFilter') && document.getElementById('mlCoordFilter').value) || '';
+  const a = document.getElementById('mlAreaFilter').value;
+  const q = (document.getElementById('mlSearch').value||'').toLowerCase();
+  const seasTwiAvail2 = DATA.seasTwi && DATA.seasTwi.totalMisloads > 0;
+
+  // ==== COORDINATOR GROUP AGGREGATE VIEW (SVQ Twilight data) ====
+  if(cg && seasTwiAvail2){
+    // Swap table headers for aggregate view
+    const thead = document.querySelector('#mlDetail thead tr');
+    if(thead) thead.innerHTML = '<th>Work Area</th><th class="num">Volume</th><th class="num">Misloads</th><th>Frequency</th><th>vs Goal (1/2,500)</th>';
+    const coordData = DATA.seasTwi.byCoord[cg];
+    if(!coordData || !coordData.areas.length){
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-msg">No data for ${escapeHTML(cg)}</td></tr>`;
+      return;
+    }
+    // Per-area rows
+    let html = coordData.areas.map(a2=>{
+      const freqBadge = mlFreqBadge(a2.scanTot, a2.misloadTots);
+      return `<tr>
+        <td>${escapeHTML(a2.area)}</td>
+        <td class="num">${fmt(a2.scanTot)}</td>
+        <td class="num">${fmt(a2.misloadTots)}</td>
+        <td>${a2.misloadTots > 0 ? '1/' + Math.round(a2.scanTot/a2.misloadTots).toLocaleString() : '<span style="color:var(--green)">0 misloads</span>'}</td>
+        <td>${freqBadge}</td>
+      </tr>`;
+    }).join('');
+    // Group subtotal row
+    const gBadge = mlFreqBadge(coordData.vol, coordData.misloads);
+    html += `<tr style="background:var(--card2);font-weight:700;border-top:2px solid var(--border)">
+      <td>TOTAL — ${escapeHTML(cg)}</td>
+      <td class="num">${fmt(coordData.vol)}</td>
+      <td class="num">${fmt(coordData.misloads)}</td>
+      <td>${coordData.misloads > 0 ? '1/' + Math.round(coordData.vol/coordData.misloads).toLocaleString() : '<span style="color:var(--green)">0 misloads</span>'}</td>
+      <td>${gBadge}</td>
+    </tr>`;
+    tbody.innerHTML = html;
+    return;
+  }
+
+  // ==== ALL-GROUPS AGGREGATE VIEW (SVQ Twilight, no coord filter) ====
+  if(!cg && seasTwiAvail2 && !a && !q){
+    const thead = document.querySelector('#mlDetail thead tr');
+    if(thead) thead.innerHTML = '<th>Coord Group</th><th>Work Area</th><th class="num">Volume</th><th class="num">Misloads</th><th>Frequency</th><th>vs Goal (1/2,500)</th>';
+    const ORDER = ['PD1-4','PD5-8','PD9-12','Smalls Sort','Air','Back Feeds','Unassigned','Primary','Other'];
+    let html = '';
+    ORDER.forEach(coord=>{
+      const cd = DATA.seasTwi.byCoord[coord]; if(!cd) return;
+      // Per-area rows
+      cd.areas.forEach(a2=>{
+        const freqBadge = mlFreqBadge(a2.scanTot, a2.misloadTots);
+        html += `<tr>
+          <td>${coordBadge(coord)}</td>
+          <td>${escapeHTML(a2.area)}</td>
+          <td class="num">${fmt(a2.scanTot)}</td>
+          <td class="num">${fmt(a2.misloadTots)}</td>
+          <td>${a2.misloadTots > 0 ? '1/' + Math.round(a2.scanTot/a2.misloadTots).toLocaleString() : '<span style="color:var(--green)">0</span>'}</td>
+          <td>${freqBadge}</td>
+        </tr>`;
+      });
+      // Group subtotal
+      const gBadge = mlFreqBadge(cd.vol, cd.misloads);
+      html += `<tr style="background:var(--card2);font-weight:700;border-top:1px solid var(--border)">
+        <td colspan="2" style="color:var(--accent)">↳ ${escapeHTML(coord)} subtotal</td>
+        <td class="num">${fmt(cd.vol)}</td>
+        <td class="num">${fmt(cd.misloads)}</td>
+        <td>${cd.misloads > 0 ? '1/' + Math.round(cd.vol/cd.misloads).toLocaleString() : '<span style="color:var(--green)">0</span>'}</td>
+        <td>${gBadge}</td>
+      </tr>`;
+    });
+    // Also add any coord groups not in ORDER
+    Object.keys(DATA.seasTwi.byCoord).filter(k=>!ORDER.includes(k)).forEach(coord=>{
+      const cd = DATA.seasTwi.byCoord[coord];
+      cd.areas.forEach(a2=>{
+        const freqBadge = mlFreqBadge(a2.scanTot, a2.misloadTots);
+        html += `<tr>
+          <td>${coordBadge(coord)}</td>
+          <td>${escapeHTML(a2.area)}</td>
+          <td class="num">${fmt(a2.scanTot)}</td>
+          <td class="num">${fmt(a2.misloadTots)}</td>
+          <td>${a2.misloadTots > 0 ? '1/' + Math.round(a2.scanTot/a2.misloadTots).toLocaleString() : '<span style="color:var(--green)">0</span>'}</td>
+          <td>${freqBadge}</td>
+        </tr>`;
+      });
+      const gBadge = mlFreqBadge(cd.vol, cd.misloads);
+      html += `<tr style="background:var(--card2);font-weight:700;border-top:1px solid var(--border)">
+        <td colspan="2" style="color:var(--accent)">↳ ${escapeHTML(coord)} subtotal</td>
+        <td class="num">${fmt(cd.vol)}</td>
+        <td class="num">${fmt(cd.misloads)}</td>
+        <td>${cd.misloads > 0 ? '1/' + Math.round(cd.vol/cd.misloads).toLocaleString() : '<span style="color:var(--green)">0</span>'}</td>
+        <td>${gBadge}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html || `<tr><td colspan="6" class="empty-msg">No area data in SVQ Twilight file</td></tr>`;
+    return;
+  }
+
+  // ==== LEGACY RAW ROW-LEVEL VIEW (no seasTwi or specific search/area filter) ====
+  // Restore standard headers
+  const thead = document.querySelector('#mlDetail thead tr');
+  if(thead) thead.innerHTML = '<th>Date</th><th>Work Area</th><th>Employee</th><th>Tracking #</th><th>Plan Flow</th><th>Next Scan</th><th>Dest</th><th>City, ST</th>';
+  let rows = DATA.misloads.rows.slice();
+  if(cg) rows = rows.filter(r=>r.coord===cg);
+  if(a) rows = rows.filter(r=>r.area===a);
+  if(q) rows = rows.filter(r=>
+    (r.track||'').toLowerCase().includes(q) ||
+    (r.dest||'').toLowerCase().includes(q) ||
+    (r.emp||'').toLowerCase().includes(q) ||
+    (r.nextScan||'').toLowerCase().includes(q));
+  rows = rows.slice(0, 500);
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${escapeHTML(r.date||'')}</td>
+      <td>${escapeHTML(r.area)}</td>
+      <td>${escapeHTML(r.emp)}</td>
+      <td>${escapeHTML(r.track)}</td>
+      <td>${escapeHTML(r.planFlow)}</td>
+      <td>${escapeHTML(r.nextScan)}</td>
+      <td>${escapeHTML(r.dest)}</td>
+      <td>${escapeHTML(r.city)}, ${escapeHTML(r.st)}</td>
+    </tr>`).join('');
+}
+
+/* Misload work area → coord group (matches the filter dropdown options) */
+function misloadCoordGroup(area){
+  if(!area) return 'Other';
+  const a = String(area).toUpperCase().trim();
+  let m = a.match(/^PD-(\d+)/);
+  if(m){
+    const n = parseInt(m[1],10);
+    if(n>=1 && n<=4) return 'PD1-4';
+    if(n>=5 && n<=8) return 'PD5-8';
+    if(n>=9 && n<=12) return 'PD9-12';
+  }
+  if(a === 'SMALLS SORT' || a === 'SMALLS') return 'Smalls Sort';
+  if(a === 'AIRSORT' || a === 'AIR' || /AIR RECOVERY/.test(a)) return 'Air';
+  if(a === 'BACK FEEDS' || a === 'BACKFEEDS') return 'Back Feeds';
+  if(a === 'UNASSIGNED') return 'Unassigned';
+  if(a === 'SECONDARY' || a === 'SECONDARY SORT') return 'Primary';
+  return 'Other';
+}
+
+/* LIB area filter rule: keep BACKFEEDS, UNASSIGNED, PD-* (drops Smalls Sort noise & unmapped) */
+function libAreaAllowed(area){
+  if(!area) return false;
+  const a = String(area).toUpperCase();
+  if(a === 'BACK FEEDS' || a === 'BACKFEEDS') return true;
+  if(a === 'UNASSIGNED') return true;
+  if(/^PD-\d+/.test(a)) return true;
+  return false;
+}
+/* Extract the 5-char destination code from "US-{slic} ({hub}) T" */
+function destCode(s){
+  if(!s) return '';
+  const m = String(s).match(/\(([A-Z]{4,5})\)/);
+  if(m) return m[1];
+  return String(s).trim();
+}
+
+/* ----------------------- LIB TAB ----------------------- */
+function renderLibTab(){
+  const kp = document.getElementById('libKpis');
+  if(!DATA.lib || !DATA.lib.rows.length){
+    kp.innerHTML = '<div class="empty-msg">Upload SVQ LIB file to populate</div>';
+    document.querySelector('#libDetail tbody').innerHTML = '';
+    return;
+  }
+  // Total LIB = LIB Breakdown Worksheet's "LIB Total" cell (B-col under Volume), or row count fallback.
+  // Volume = LIB Breakdown Worksheet B3 (NOT the SPR Net Volume — LIB report is ~3 days behind sort date).
+  // The work-area filter only narrows the breakdown charts and detail table.
+  const includeAll = !!(document.getElementById('libIncludeAll') && document.getElementById('libIncludeAll').checked);
+  const allRows = DATA.lib.rows;
+  const baseRows = allRows.filter(r => includeAll || libAreaAllowed(r.area));
+
+  const totalLIB = DATA.lib.totalLIB != null ? DATA.lib.totalLIB : allRows.length;
+  const filteredCount = baseRows.length;
+  const libVol = DATA.lib.volume || 0;        // Volume from LIB Breakdown B3 (date-aligned to LIB report)
+  const lib = libBadge(libVol, totalLIB);
+
+  const typeMap = {}, areaMap = {}, destMap = {}, stateMap = {};
+  baseRows.forEach(r=>{
+    typeMap[r.err] = (typeMap[r.err]||0) + 1;
+    areaMap[r.area] = (areaMap[r.area]||0) + 1;
+    const d = destCode(r.planFlow);
+    if(d && d !== 'NO FLOW') destMap[d] = (destMap[d]||0) + 1;
+    else if(d) destMap['NO FLOW'] = (destMap['NO FLOW']||0) + 1;
+    if(r.st) stateMap[r.st] = (stateMap[r.st]||0) + 1;
+  });
+  // States table is computed over ALL rows (Total LIB) — independent of the area filter
+  const stateMapAll = {};
+  allRows.forEach(r=>{ if(r.st) stateMapAll[r.st] = (stateMapAll[r.st]||0)+1; });
+  const types = Object.entries(typeMap).sort((a,b)=>b[1]-a[1]);
+  const areas = Object.entries(areaMap).sort((a,b)=>b[1]-a[1]);
+  const dests = Object.entries(destMap).sort((a,b)=>b[1]-a[1]);
+
+  function k(label, val, sub, stripe){
+    return `<div class="kpi"><div class="kpi-stripe ${stripe||'stripe-neutral'}"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div><div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+  }
+  kp.innerHTML = [
+    k('Total LIB', fmt(totalLIB), (DATA.lib.date ? `Reporting date: ${DATA.lib.date}` : ''), 'stripe-neutral'),
+    k('LIB Frequency', lib.txt, `goal 1/1,000 · ${fmt(libVol)} vol ÷ ${fmt(totalLIB)} LIB ${lib.stripe==='stripe-green'?'met':'missed'}`, lib.stripe),
+    k('Volume (LIB date)', fmt(libVol), `Date-aligned to LIB report · lags SPR ~2 days`, 'stripe-neutral'),
+    k('Top Error Type', types[0]?types[0][0]:'—', types[0]?`${types[0][1]} occurrences (filtered)`:'', 'stripe-neutral')
+  ].join('');
+
+  document.getElementById('libDateNote').textContent =
+    (DATA.lib.date ? `Date range: ${DATA.lib.date}` : '') +
+    (includeAll ? '' : '  ·  Filter: BACK FEEDS, UNASSIGNED, PD-*');
+
+  makeChart('chartLibType', {
+    type:'doughnut',
+    data:{labels:types.map(x=>x[0]).slice(0,8), datasets:[{
+      data:types.map(x=>x[1]).slice(0,8),
+      backgroundColor:[C.accent, C.warn, C.green, C.purple, C.pink, C.orange, C.blue, C.muted]
+    }]},
+    options:{plugins:{legend:{position:'right'}}, responsive:true, maintainAspectRatio:false}
+  });
+  makeChart('chartLibArea', {
+    type:'bar',
+    data:{labels:areas.slice(0,12).map(x=>x[0]), datasets:[{data:areas.slice(0,12).map(x=>x[1]), backgroundColor:C.accent}]},
+    options:{plugins:{legend:{display:false}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+  // Plan Flow destination chart — top 25, sorted desc by count
+  const destTop = dests.slice(0, 25);
+  makeChart('chartLibDest', {
+    type:'bar',
+    data:{labels:destTop.map(x=>x[0]), datasets:[{data:destTop.map(x=>x[1]), backgroundColor:C.purple}]},
+    options:{plugins:{legend:{display:false}, tooltip:{callbacks:{
+      label: ctx => `${ctx.parsed.x} LIB packages`
+    }}}, indexAxis:'y', responsive:true, maintainAspectRatio:false}
+  });
+
+  const sel = document.getElementById('libTypeFilter');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">All</option>` + types.map(t=>`<option value="${escapeHTML(t[0])}">${escapeHTML(t[0])} (${t[1]})</option>`).join('');
+  sel.value = cur;
+
+  const stSel = document.getElementById('libStateFilter');
+  const stCur = stSel.value;
+  const stEntries = Object.entries(stateMap).sort((a,b)=>b[1]-a[1]);
+  stSel.innerHTML = `<option value="">All</option>` + stEntries.map(([k,v])=>`<option value="${escapeHTML(k)}">${escapeHTML(k)} (${v})</option>`).join('');
+  stSel.value = stCur;
+
+  // States table — over ALL rows (Total LIB)
+  const stAll = Object.entries(stateMapAll).sort((a,b)=>b[1]-a[1]);
+  const stTotal = stAll.reduce((a,c)=>a+c[1],0) || 1;
+  document.querySelector('#libStatesTable tbody').innerHTML = stAll.map(([k,v])=>`
+    <tr><td>${escapeHTML(k)}</td><td class="num">${fmt(v)}</td><td class="num">${(v/stTotal*100).toFixed(1)}%</td></tr>
+  `).join('') || `<tr><td colspan="3" class="empty-msg">No state data</td></tr>`;
+
+  renderLibDetail();
+}
+function renderLibDetail(){
+  const tbody = document.querySelector('#libDetail tbody');
+  if(!DATA.lib || !DATA.lib.rows.length){ tbody.innerHTML = ''; return; }
+  const includeAll = !!(document.getElementById('libIncludeAll') && document.getElementById('libIncludeAll').checked);
+  const t = document.getElementById('libTypeFilter').value;
+  const st = document.getElementById('libStateFilter').value;
+  const q = (document.getElementById('libSearch').value||'').toLowerCase();
+  let rows = DATA.lib.rows.filter(r => includeAll || libAreaAllowed(r.area));
+  if(t) rows = rows.filter(r=>r.err===t);
+  if(st) rows = rows.filter(r=>r.st===st);
+  if(q) rows = rows.filter(r=>
+    (r.track||'').toLowerCase().includes(q) ||
+    (r.dest||'').toLowerCase().includes(q) ||
+    (r.planFlow||'').toLowerCase().includes(q) ||
+    (r.area||'').toLowerCase().includes(q) ||
+    (r.city||'').toLowerCase().includes(q));
+  rows = rows.slice(0, 500);
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${escapeHTML(r.date||'')}</td>
+      <td>${escapeHTML(r.err)}</td>
+      <td>${escapeHTML(r.area)}</td>
+      <td>${escapeHTML(r.track)}</td>
+      <td>${escapeHTML(r.planFlow)}</td>
+      <td>${escapeHTML(r.origin)}</td>
+      <td>${escapeHTML(r.dest)}</td>
+      <td>${escapeHTML(r.city)}, ${escapeHTML(r.st)}</td>
+    </tr>`).join('');
+}
+
+/* ----------------------- CUBE TAB ----------------------- */
+function utilBand(u){
+  if(u<65) return {b:'0-65', stripe:'stripe-deepred', label:'Deep Red (0-65%)'};
+  if(u<70) return {b:'65-70', stripe:'stripe-red', label:'Red (65-70%)'};
+  if(u<75) return {b:'70-75', stripe:'stripe-orange', label:'Orange (70-75%)'};
+  if(u<80) return {b:'75-80', stripe:'stripe-green', label:'Green (75-80%)'};
+  return {b:'80+', stripe:'stripe-deepgreen', label:'Deep Green (80+%)'};
+}
+let _cubeSort = {col:'ppwGap', dir:'desc'};
+
+function renderCubeTab(){
+  const kp = document.getElementById('cubeKpis');
+  if(!DATA.cube || !DATA.cube.rows.length){
+    kp.innerHTML = '<div class="empty-msg">No data — upload CURE file</div>';
+    document.querySelector('#cubeGap tbody').innerHTML = '';
+    document.querySelector('#cubeAll tbody').innerHTML = '';
+    return;
+  }
+  // Apply the OS filter to the tables/charts (KPI tiles still cover all OS variants per spec)
+  const os = activeCubeOS();
+  const note = document.getElementById('cubeOSNote');
+  if(note){
+    if(os) note.textContent = `Tables/charts filtered to OS = ${os}` + (DATA.sortCode && document.getElementById('cubeOSFilter').value === 'auto' ? ` (auto from SPR -${DATA.sortCode})` : '');
+    else note.textContent = 'Tables/charts include all sort codes';
+  }
+  const allHighRows = DATA.cube.highTfcsRows;
+  const high = os ? allHighRows.filter(r => r.os === os) : allHighRows;
+  const buckets = {'0-65':0,'65-70':0,'70-75':0,'75-80':0,'80+':0};
+  high.forEach(r=>{ buckets[utilBand(r.util).b]++; });
+  const meeting = high.filter(r=>r.util >= 75).length;
+  const cubePct = high.length ? (meeting/high.length)*100 : 0;
+  const cb = cubeBadge();
+
+  function k(label, val, sub, stripe){
+    return `<div class="kpi"><div class="kpi-stripe ${stripe||'stripe-neutral'}"></div>
+      <div class="kpi-label">${escapeHTML(label)}</div><div class="kpi-val">${val}</div>
+      <div class="kpi-sub">${sub||''}</div></div>`;
+  }
+  // 4 OS-based tiles + supporting PPW tile (replacing the old All / TFCS≥95 / Cube Score / Gap / PPW set)
+  kp.innerHTML = renderCubeTilesHTML() +
+    k('PPW Gap Loads', fmt(DATA.cube.gapRows.length), `TFCS≥95 but Util<75 — ${fmt(high.reduce((a,r)=>a+r.ppw,0)/(high.length||1),1)} avg PPW`, DATA.cube.gapRows.length ? 'stripe-orange' : 'stripe-green');
+
+  document.getElementById('cubeDateNote').textContent = DATA.cube.date ? `Date range: ${DATA.cube.date}` : '';
+
+  // Util % distribution — compact doughnut with inline legend
+  const labels = ['0-65','65-70','70-75','75-80','80+'];
+  const colors = [C.redDeep, C.red, C.orange, C.green, C.greenDeep];
+  const bandLabels = ['Deep Red (0–65)', 'Red (65–70)', 'Amber (70–75)', 'Green (75–80)', 'Deep Green (80+)'];
+  const counts = labels.map(l=>buckets[l]);
+  const total  = counts.reduce((a,b)=>a+b,0);
+  makeChart('chartCubeUtil', {
+    type:'doughnut',
+    data:{labels: bandLabels, datasets:[{data:counts, backgroundColor:colors,
+      borderColor:'var(--card)', borderWidth:2, hoverOffset:6}]},
+    options:{cutout:'62%', plugins:{legend:{display:false}, tooltip:{callbacks:{
+      label: ctx=>{
+        const c = ctx.parsed;
+        return `${c} loads (${total?((c/total)*100).toFixed(1):0}%)`;
+      }
+    }}}, responsive:true, maintainAspectRatio:false}
+  });
+  // Inline legend
+  const legendEl = document.getElementById('cubeUtilLegend');
+  if(legendEl){
+    legendEl.innerHTML = labels.map((l,i)=>{
+      const c = counts[i], pct = total ? ((c/total)*100).toFixed(1) : '0.0';
+      return `<div style="display:flex;align-items:center;gap:7px">
+        <span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${colors[i]};flex-shrink:0"></span>
+        <span style="color:var(--text2)">${bandLabels[i]}</span>
+        <span style="margin-left:auto;font-weight:700;color:var(--text)">${c}</span>
+        <span style="color:var(--muted);font-size:11px;width:38px;text-align:right">${pct}%</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Gap table — respect OS filter
+  const gtb = document.querySelector('#cubeGap tbody');
+  let gap = DATA.cube.gapRows.slice();
+  if(os) gap = gap.filter(r => r.os === os);
+  gap.sort((a,b)=>(b.ppwGap||0)-(a.ppwGap||0));
+  gtb.innerHTML = gap.map(r=>`
+    <tr>
+      <td>${escapeHTML(r.dest)} <span style="color:var(--muted);font-size:11px">${escapeHTML((r.destName||'').trim())}</span></td>
+      <td>${escapeHTML(r.date||'')}</td>
+      <td class="num">${fmt(r.tfcs,1)}</td>
+      <td class="num" style="color:${r.util<65?C.redDeep:r.util<70?C.red:C.orange}">${fmt(r.util,1)}</td>
+      <td class="num">${fmt(r.ppw,1)}</td>
+      <td class="num">${r.ppwGoal!=null?fmt(r.ppwGoal,1):'—'}</td>
+      <td class="num" style="color:${C.orange};font-weight:600">+${fmt(r.ppwGap,1)}</td>
+      <td class="num">${fmt(r.avgNet)}</td>
+    </tr>`).join('') || `<tr><td colspan="8" class="empty-msg">No loads with TFCS≥95% AND Util&lt;75%</td></tr>`;
+
+  renderCubeAll();
+  renderCubeHeatmap();
+}
+function renderCubeAll(){
+  const tbody = document.querySelector('#cubeAll tbody');
+  const band = document.getElementById('cubeBandFilter').value;
+  const q = (document.getElementById('cubeSearch').value||'').toLowerCase();
+  const os = activeCubeOS();
+  let rows = (DATA.cube.highTfcsRows||[]).slice();
+  if(os) rows = rows.filter(r => r.os === os);
+  if(band) rows = rows.filter(r=>utilBand(r.util).b === band);
+  if(q) rows = rows.filter(r=>(r.dest||'').toLowerCase().includes(q) || (r.destName||'').toLowerCase().includes(q));
+
+  // Sort
+  const c = _cubeSort.col, dir = _cubeSort.dir==='asc'?1:-1;
+  rows.sort((a,b)=>{
+    let av, bv;
+    switch(c){
+      case 'dest':        av=a.dest;             bv=b.dest;             break;
+      case 'dt':          av=a.date||'';         bv=b.date||'';         break;
+      case 'os':          av=a.os||'';           bv=b.os||'';           break;
+      case 'tfcs':        av=a.tfcs;             bv=b.tfcs;             break;
+      case 'util':        av=a.util;             bv=b.util;             break;
+      case 'pkgCube':     av=a.pkgCube;          bv=b.pkgCube;          break;
+      case 'ppw':         av=a.ppw;              bv=b.ppw;              break;
+      case 'avgNet':      av=a.avgNet;           bv=b.avgNet;           break;
+      case 'loadedCube':  av=a.totLoadedCube;    bv=b.totLoadedCube;    break;
+      case 'equipCap':    av=a.avgEquipCap;      bv=b.avgEquipCap;      break;
+      default:            av=a.util;             bv=b.util;
+    }
+    if(typeof av === 'number' && typeof bv === 'number') return (av-bv)*dir;
+    return String(av||'').localeCompare(String(bv||''))*dir;
+  });
+
+  function utilCol(u){
+    if(u==null||!isFinite(u)) return 'var(--text)';
+    return u<65?C.redDeep:u<70?C.red:u<75?C.orange:u<80?C.green:C.greenDeep;
+  }
+
+  tbody.innerHTML = rows.slice(0,400).map(r=>`<tr>
+    <td>${escapeHTML(r.dest)} <span style="color:var(--muted);font-size:11px">${escapeHTML((r.destName||'').trim())}</span></td>
+    <td>${escapeHTML(r.date||'—')}</td>
+    <td>${escapeHTML(r.os||'—')}</td>
+    <td class="num">${fmt(r.tfcs,1)}</td>
+    <td class="num" style="color:${utilCol(r.util)};font-weight:600">${fmt(r.util,1)}</td>
+    <td class="num">${fmt(r.ppw,1)}</td>
+    <td class="num">${fmt(r.pkgCube,3)}</td>
+    <td class="num">${Math.round(r.avgNet||0).toLocaleString()}</td>
+    <td class="num">${Math.round(r.totLoadedCube||0).toLocaleString()}</td>
+    <td class="num">${Math.round(r.avgEquipCap||0).toLocaleString()}</td>
+  </tr>`).join('');
+
+  // Sort indicators
+  document.querySelectorAll('#cubeAll th').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.col === _cubeSort.col) th.classList.add(_cubeSort.dir==='asc'?'sort-asc':'sort-desc');
+  });
+}
+
+
+/* ─────────────────────────── CUBE HEATMAP (v2.9) ──────────────────────────── */
+function renderCubeHeatmap(){
+  const wrap = document.getElementById('cubeHeatmapWrap');
+  if(!wrap) return;
+  const os = activeCubeOS();
+  const allRows = (DATA.cube && DATA.cube.highTfcsRows) ? DATA.cube.highTfcsRows : [];
+  const filtered = os ? allRows.filter(r => !r.os || r.os === os) : allRows;
+  if(!filtered.length){
+    wrap.innerHTML = '<div class="empty-msg" style="padding:24px">No TFCS&ge;95 destination rows. Upload a CURE file to populate the heatmap.</div>';
+    return;
+  }
+  // Build dest×date matrix — average util when multiple rows for same (dest,date)
+  const dates = [...new Set(filtered.map(r=>r.date).filter(Boolean))].sort();
+  const dests = {};
+  filtered.forEach(r=>{
+    if(!r.dest) return;
+    if(!dests[r.dest]) dests[r.dest]={name:r.destName||'',byDate:{},totLoads:0,sumUtil:0,n:0,vals:[]};
+    const d = r.date||'?';
+    if(!dests[r.dest].byDate[d]) dests[r.dest].byDate[d]={sumUtil:0,n:0};
+    dests[r.dest].byDate[d].sumUtil += (r.util||0);
+    dests[r.dest].byDate[d].n += 1;
+    dests[r.dest].totLoads += (r.totLoads||1);
+    dests[r.dest].sumUtil += (r.util||0);
+    dests[r.dest].n += 1;
+    dests[r.dest].vals.push(r.util||0);
+  });
+  // Rank
+  const topNSel = (document.getElementById('cubeHeatmapTopN')||{value:'25'}).value;
+  const rank    = (document.getElementById('cubeHeatmapRank')||{value:'loads'}).value;
+  const hmDir   = (document.getElementById('cubeHeatmapDir') ||{value:'desc'}).value;
+  const d_mul   = hmDir === 'asc' ? -1 : 1;   // flip all comparisons when ascending
+  let entries = Object.entries(dests).map(([dest,d])=>{
+    const avg = d.n ? d.sumUtil/d.n : 0;
+    const std = d.vals.length>1 ? Math.sqrt(d.vals.reduce((s,v)=>s+(v-avg)*(v-avg),0)/(d.vals.length-1)) : 0;
+    return {dest,...d,avg,std};
+  });
+  if(rank==='loads')        entries.sort((a,b)=>(b.totLoads-a.totLoads)*d_mul);
+  else if(rank==='worst')   entries.sort((a,b)=>(a.avg-b.avg)*d_mul);
+  else                      entries.sort((a,b)=>(b.std-a.std)*d_mul);
+  const N = topNSel==='all' ? entries.length : Math.min(+topNSel||25, entries.length);
+  entries = entries.slice(0,N);
+
+  // Cell color: smooth gradient red→amber→yellow→green→dark green
+  function cellBg(u){
+    if(u==null||!isFinite(+u)) return 'transparent';
+    const stops=[[0,[153,27,27]],[60,[239,68,68]],[70,[245,158,66]],[75,[255,216,0]],[82,[34,197,94]],[100,[21,128,61]]];
+    const v=Math.max(0,Math.min(100,+u));
+    let prev=stops[0],next=stops[stops.length-1];
+    for(let i=1;i<stops.length;i++){if(v<=stops[i][0]){prev=stops[i-1];next=stops[i];break;}}
+    const span=next[0]-prev[0]||1, t=(v-prev[0])/span;
+    const c=prev[1].map((p,j)=>Math.round(p+(next[1][j]-p)*t));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  let h='<table class="cube-csh"><thead><tr><th class="dest-cell">Destination &middot; <span style="font-weight:400;color:var(--muted);text-transform:none">avg &middot; loads</span></th>';
+  dates.forEach(d=>{h+=`<th>${escapeHTML(d)}</th>`;});
+  h+='</tr></thead><tbody>';
+  entries.forEach(e=>{
+    h+=`<tr><td class="dest-cell">${escapeHTML(e.dest)} <span style="color:var(--muted);font-weight:400">${escapeHTML((e.name||'').slice(0,16))}</span><div style="font-size:9px;color:var(--muted)">avg ${e.avg.toFixed(1)}% &middot; ${Math.round(e.totLoads)} loads</div></td>`;
+    dates.forEach(d=>{
+      const cell=e.byDate[d];
+      if(!cell||!cell.n){h+='<td>—</td>';return;}
+      const u=cell.sumUtil/cell.n;
+      const bg=cellBg(u);
+      const txtCol=(u>=70&&u<=80)?'#141413':'#fff';
+      h+=`<td title="${escapeHTML(e.dest)} on ${escapeHTML(d)}: ${u.toFixed(1)}% util (${cell.n} row${cell.n!==1?'s':''})" style="background:${bg};color:${txtCol};font-weight:600">${u.toFixed(1)}</td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
+/* ----------------------- COMPARE TAB ----------------------- */
+/* Build a "snapshot" of all KPI values from one slot's worth of files (parses on-demand) */
+
+
+/* ─────────────────────────── INBOUND DATA TAB ──────────────────────────── */
+function renderInboundTab(){
+  const page = document.getElementById('page-inbound');
+  if(!page) return;
+  const ib = DATA.inbound || {unloads:{},bulkBelts:{},pfeeds:{}};
+
+  // Aggregate Misload Count and LIB Count per group (sum across employees)
+  function aggSection(sectionObj){
+    const result = {};
+    Object.entries(sectionObj).forEach(([groupKey, rows])=>{
+      let ml = 0, lib = 0;
+      rows.forEach(r=>{ ml += (r.mlCount||0); lib += (r.libCount||0); });
+      result[groupKey] = {mlCount: ml, libCount: lib};
+    });
+    return result;
+  }
+  const unloadAgg = aggSection(ib.unloads   || {});
+  const bbAgg     = aggSection(ib.bulkBelts || {});
+  const pfAgg     = aggSection(ib.pfeeds    || {});
+  const allAgg    = {...unloadAgg, ...pfAgg, ...bbAgg};
+
+  // Display order: Unload 1-4, PF-1-4, Bulk Belt 1-4
+  const groups = [
+    ...Object.keys(ib.unloads   || {}),
+    ...Object.keys(ib.pfeeds    || {}),
+    ...Object.keys(ib.bulkBelts || {})
+  ];
+  const hasData = groups.some(g=> allAgg[g] && (allAgg[g].mlCount > 0 || allAgg[g].libCount > 0));
+
+  if(!hasData){
+    page.innerHTML = `<div class="section-title">Inbound Scan Metrics</div>
+      <div class="empty-msg">No data — upload Employee Data file</div>`;
+    return;
+  }
+
+  const mlData  = groups.map(g=> allAgg[g] ? allAgg[g].mlCount  : 0);
+  const libData = groups.map(g=> allAgg[g] ? allAgg[g].libCount : 0);
+  const totalMl  = mlData.reduce((a,v)=>a+v, 0);
+  const totalLib = libData.reduce((a,v)=>a+v, 0);
+
+  page.innerHTML = `
+    <div class="section-title">Inbound Scan Metrics</div>
+    <div class="kpi-grid" style="margin-bottom:18px">
+      <div class="kpi"><div class="kpi-stripe stripe-neutral"></div>
+        <div class="kpi-label">Total Misload Count</div>
+        <div class="kpi-val">${fmt(totalMl)}</div>
+        <div class="kpi-sub">Across all inbound groups</div></div>
+      <div class="kpi"><div class="kpi-stripe stripe-neutral"></div>
+        <div class="kpi-label">Total LIB Count</div>
+        <div class="kpi-val">${fmt(totalLib)}</div>
+        <div class="kpi-sub">Across all inbound groups</div></div>
+    </div>
+    <div class="chart-card" style="margin-bottom:18px">
+      <div class="chart-title">Misload Count & LIB Count by Inbound Group</div>
+      <div class="chart-wrap" style="height:360px"><canvas id="chartInbound"></canvas></div>
+    </div>
+    <div class="section-title">Summary Table</div>
+    <div class="table-card">
+      <table id="inboundSummary"><thead><tr>
+        <th>Group</th><th class="num">Misload Count</th><th class="num">LIB Count</th>
+      </tr></thead><tbody>${groups.map(g=>{
+        const d = allAgg[g] || {mlCount:0, libCount:0};
+        return `<tr><td>${escapeHTML(g)}</td><td class="num">${fmt(d.mlCount)}</td><td class="num">${fmt(d.libCount)}</td></tr>`;
+      }).join('')}
+      <tr style="background:var(--card2);font-weight:700;border-top:2px solid var(--border)">
+        <td>TOTAL</td><td class="num">${fmt(totalMl)}</td><td class="num">${fmt(totalLib)}</td>
+      </tr></tbody></table>
+    </div>`;
+
+  // Color groups: gold for Unloads, purple for PFs, amber for Bulk Belts
+  const barColors = groups.map(g=>{
+    if(g.startsWith('Unload'))    return C.accent;
+    if(g.startsWith('PF'))       return C.purple;
+    return C.accent2;
+  });
+  const libColors = groups.map(g=>{
+    if(g.startsWith('Unload'))    return 'rgba(255,216,0,0.45)';
+    if(g.startsWith('PF'))       return 'rgba(167,139,250,0.45)';
+    return 'rgba(209,123,17,0.45)';
+  });
+
+  makeChart('chartInbound', {
+    type:'bar',
+    data:{ labels: groups, datasets:[
+      {label:'Misload Count', data: mlData,  backgroundColor: barColors},
+      {label:'LIB Count',     data: libData, backgroundColor: libColors}
+    ]},
+    options:{
+      plugins:{legend:{labels:{color:C.text, boxWidth:12, padding:8}}},
+      scales:{y:{beginAtZero:true, title:{display:true, text:'Count', color:C.muted, font:{size:10}}}},
+      responsive:true, maintainAspectRatio:false
+    }
+  });
+}
+
+/* ─────────────────────────── SUPPORT TAB ───────────────────────────────── */
+function renderSupportTab(){
+  const page = document.getElementById('page-support');
+  if(!page || page.dataset.rendered === '1') return;
+  page.dataset.rendered = '1';
+
+  /* ── Section A: File Dependency Map ── */
+  const deps = [
+    { slot: 'SPR',                    tabs: ['Overview', 'Work Areas', 'Staffing'] },
+    { slot: 'SVQ Misloads',          tabs: ['Misloads tab', 'Overview (misload KPI)'] },
+    { slot: 'SVQ Twilight Summary',  tabs: ['Misloads tab (volume denominator)'] },
+    { slot: 'LIB Breakdown',          tabs: ['LIB tab', 'Overview (LIB KPI)'] },
+    { slot: 'CURE Cube',              tabs: ['Cube tab', 'Overview (cube KPIs)'] },
+    { slot: 'Employee Data',          tabs: ['Outbound Data tab', 'Inbound Data tab'] },
+    { slot: 'SCANTRACK Employee Summary', tabs: ['Outbound Data tab (SCANTRACK Scan Metrics)'] },
+    { slot: 'SVQ Employee Summary',  tabs: ['Staffing tab (employee roster)'] },
+    { slot: 'SVQ Sort Summary',      tabs: ['Sort Summary tab'] }
+  ];
+
+  const depRows = deps.map(d => `
+    <tr>
+      <td style="font-weight:600;color:var(--accent);white-space:nowrap;padding-right:12px">${escapeHTML(d.slot)}</td>
+      <td style="color:var(--muted);font-size:14px;padding:0 10px;vertical-align:middle">→</td>
+      <td>${d.tabs.map(t=>`<span style="display:inline-block;background:var(--card2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;margin:2px 3px 2px 0;color:var(--text)">${escapeHTML(t)}</span>`).join(' ')}</td>
+    </tr>`).join('');
+
+  const depMap = `
+    <div class="section-title">File Dependency Map</div>
+    <div class="table-card" style="overflow:visible;max-height:none">
+      <table style="border-collapse:separate;border-spacing:0">
+        <thead><tr>
+          <th style="min-width:220px">Upload Slot</th>
+          <th style="width:30px"></th>
+          <th>Tabs Fed</th>
+        </tr></thead>
+        <tbody>${depRows}</tbody>
+      </table>
+    </div>`;
+
+  /* ── Section B: File Naming Conventions ── */
+  const conventions = [
+    { slot:'SPR',                  pattern:'SPR-US-{SLIC}-{YYYY-MM-DD}-{T/D/N}.xlsx',                       example:`SPR-US-${DASHBOARD_HUB.code}-2026-04-29-T.xlsx` },
+    { slot:'SVQ Misloads',        pattern:'Misload_{MM.DD}_{MM.DD}.xlsx',                                   example:'Misload_04.22_04.29.xlsx' },
+    { slot:'SVQ Twilight Summary',pattern:'SVQ_TwilightSummary_{MM.DD}_{MM.DD}.xlsx',                      example:'SVQ_TwilightSummary_04.29_04.29.xlsx' },
+    { slot:'LIB Breakdown',        pattern:'LIB Breakdown Worksheet.xlsx',                                   example:'LIB Breakdown Worksheet.xlsx' },
+    { slot:'CURE Cube',            pattern:'CURE_Main_Data_{MM.DD.YY}.xlsx',                                 example:'CURE_Main_Data_04.29.26.xlsx' },
+    { slot:'Employee Data',        pattern:'Employee_Data_{MM.DD}_{MM.DD}.xlsx',                             example:'Employee_Data_04.29_04.29.xlsx' },
+    { slot:'SCANTRACK Emp Summary',    pattern:'scantrack[_](day/night/twilight)?[_]employee[_]summary[_]{MM.DD}.xlsx', example:'SCANTRACK_Twilight_Employee_Summary_04.29.26.xlsx' },
+    { slot:'SVQ Emp Summary',     pattern:'Employee_Data_{MM.DD}_{MM.DD}.xlsx',                             example:'Employee_Data_04.29_04.29.xlsx' },
+    { slot:'SVQ Sort Summary',    pattern:'SVQ_SortSummary_{MM.DD}_{MM.DD}.xlsx',                          example:'SVQ_SortSummary_04.29_04.29.xlsx' }
+  ];
+
+  const convRows = conventions.map(c => `
+    <tr>
+      <td style="font-weight:600;color:var(--accent)">${escapeHTML(c.slot)}</td>
+      <td style="font-family:Menlo,monospace;font-size:11px;color:var(--text2)">${escapeHTML(c.pattern)}</td>
+      <td style="font-family:Menlo,monospace;font-size:11px;color:var(--green)">${escapeHTML(c.example)}</td>
+    </tr>`).join('');
+
+  const naming = `
+    <div class="section-title" style="margin-top:32px">File Naming Conventions</div>
+    <div class="table-card">
+      <table>
+        <thead><tr>
+          <th>Upload Slot</th>
+          <th>Accepted Filename Pattern</th>
+          <th>Example</th>
+        </tr></thead>
+        <tbody>${convRows}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--muted);padding:0 4px">
+      Sort code suffix: T = Twilight, D = Day, N = Night.
+      The parser auto-detects the sort code from the SPR filename and pre-selects the Cube tab OS filter accordingly.
+    </div>`;
+
+  page.innerHTML = depMap + naming;
+}
+
+
+/* =====================================================================
+   SORT EVENT HOOKS
+   ===================================================================== */
+function attachSortHandlers(tableId, stateRef, renderer){
+  document.querySelectorAll(`#${tableId} th`).forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const c = th.dataset.col; if(!c) return;
+      if(stateRef.col === c) stateRef.dir = stateRef.dir==='asc' ? 'desc' : 'asc';
+      else { stateRef.col = c; stateRef.dir = 'desc'; }
+      renderer();
+    });
+  });
+}
+
+/* =====================================================================
+   EXPORT (PDF / JSON)
+   ===================================================================== */
+function exportJSON(){
+  const exportObj = {
+    exportedAt: new Date().toISOString(),
+    facility: DATA.facility || null,
+    sortDate: DATA.sortDate || null,
+    sortCode: DATA.sortCode || null,
+    summary: DATA.summary || null,
+    coordGroups: DATA.coordGroups || null,
+    workAreas: DATA.workAreas || null,
+    workAreaProd: DATA.workAreaProd || null,
+    payCodeCounts: DATA.payCodeCounts || null,
+    payCodeDistinctEmps: DATA.payCodeDistinctEmps || null,
+    staffing: DATA.staffing || null,
+    misloads: DATA.misloads || null,
+    lib: DATA.lib || null,
+    cube: DATA.cube || null,
+    empMetrics: DATA.empMetrics || null,
+    inbound: DATA.inbound || null,
+    seasTwi: DATA.seasTwi || null,
+    igate: DATA.igate || null
+  };
+
+  // Build filename: hub_ops_{SLIC}_{sortDate}_{OS}.json
+  const slic = DATA.facility || 'HUB';
+  const date = DATA.sortDate ? DATA.sortDate.replace(/-/g,'') : 'nodate';
+  const os   = DATA.sortCode || 'X';
+  const filename = `hub_ops_${slic}_${date}_${os}.json`;
+
+  // Replacer: convert Set objects to arrays for clean JSON serialization
+  const replacer = (key, value) => {
+    if(value instanceof Set) return [...value];
+    return value;
+  };
+
+  const blob = new Blob([JSON.stringify(exportObj, replacer, 2)], {type: 'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+async function exportPDF(){
+  const TABS = [
+    {id:'overview',  title:'Overview'},
+    {id:'areas',     title:'Work Areas'},
+    {id:'staffing',  title:'Staffing'},
+    {id:'misloads',  title:'Misloads'},
+    {id:'lib',       title:'LIB'},
+    {id:'inbound',   title:'Inbound Data'},
+    {id:'smalls',    title:'Smalls Data'},
+    {id:'outbound',  title:'Outbound Data'},
+    {id:'cube',      title:'Cube Utilization'},
+
+  ];
+  const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({orientation:'landscape', unit:'pt', format:'letter'});
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 28;
+  const titleH = 36;
+  const subH = 14;
+  const headerH = titleH + subH + 8;
+
+  logMsg('Generating multi-page PDF — this may take a moment...', 'info');
+  document.body.classList.add('pdf-mode');
+  Object.values(charts).forEach(c => c.render());
+
+  // Build subtitle line
+  const facility = DATA.facility || '';
+  const sortLabel = DATA.sortCode ? ({T:'Twilight',D:'Day',N:'Night'}[DATA.sortCode]||DATA.sortCode)+' Sort' : '';
+  const subtitle = [facility ? 'SLIC '+facility : '', DATA.sortDate||'', sortLabel].filter(Boolean).join(' · ');
+
+  let pageIdx = 0;
+  for(const tab of TABS){
+    // Show this tab
+    showTab(tab.id);
+    const el = document.getElementById('page-'+tab.id);
+    if(!el || !el.innerHTML.trim() || el.querySelector('.empty-msg:only-child')) continue;
+
+    // Wait for Chart.js renders
+    await new Promise(r=>setTimeout(r, 300));
+
+    try {
+      const canvas = await html2canvas(el, {
+        backgroundColor:'#FFFFFF',
+        scale: 1.5,
+        useCORS: true,
+        logging: false,
+        windowWidth: 1200
+      });
+
+      if(pageIdx > 0) pdf.addPage();
+
+      // Title
+      pdf.setFontSize(16);
+      pdf.setTextColor(30, 30, 30);
+      pdf.text(tab.title, margin, margin + 14);
+
+      // Subtitle
+      if(subtitle){
+        pdf.setFontSize(9);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text(subtitle, margin, margin + 28);
+      }
+
+      // Scale image to fit remaining page area
+      const availW = pageW - margin * 2;
+      const availH = pageH - margin - headerH - margin;
+      const ratio = Math.min(availW / canvas.width, availH / canvas.height, 1);
+      const imgW = canvas.width * ratio;
+      const imgH = canvas.height * ratio;
+
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, margin + headerH, imgW, imgH);
+
+      // Page number footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(160, 160, 160);
+      pdf.text(`Page ${pageIdx + 1}`, pageW - margin - 30, pageH - 12);
+
+      pageIdx++;
+    } catch(e){
+      logMsg(`PDF: skipped ${tab.title} — ${e.message}`, 'err');
+    }
+  }
+
+  // Restore UI
+  document.body.classList.remove('pdf-mode');
+  Object.values(charts).forEach(c => c.render());
+  if(activeTab) showTab(activeTab);
+
+  if(pageIdx === 0){
+    logMsg('No tabs had data to export', 'err');
+    return;
+  }
+
+  const filename = `hub_ops_${DATA.facility||'HUB'}_${(DATA.sortDate||'snapshot').replace(/-/g,'')}_${DATA.sortCode||'X'}.pdf`;
+  pdf.save(filename);
+  logMsg(`PDF downloaded: ${filename} (${pageIdx} pages)`, 'ok');
+}
+
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+window.addEventListener('DOMContentLoaded', ()=>{
+  setupDropZones();
+  attachSortHandlers('staffTable', _staffSort, renderStaffingRoster);
+  attachSortHandlers('igate-table', _igateSort, renderIGateTable);
+  attachSortHandlers('cubeAll', _cubeSort, renderCubeAll);
+  rebuildDashboard();
+  // Trend tab removed in v2.9.2 — history moved to OI in container
+});
+// ══════════════════════════════════════════
+// OI postMessage bridge (v4.2)
+// ══════════════════════════════════════════
+window.addEventListener('message', async function(ev) {
+  if (!ev.data || !ev.data.type) return;
+  if (ev.data.type === 'oi-export-request') {
+    var snaps=[];
+    try { snaps = await IDB.getAll(); } catch(_){}
+    var tgt = ev.source || window.parent;
+    tgt.postMessage({ type:'oi-export-response', source:'dashboard',
+      data:{ snapshots:snaps } }, '*');
+  }
+  if (ev.data.type === 'oi-import-dashboard') {
+    var d2 = ev.data.data || {}, added=0;
+    for (var r of (d2.snapshots||[])) { try { await IDB.put(r); added++; } catch(_){} }
+    var tgt2 = ev.source || window.parent;
+    tgt2.postMessage({ type:'oi-import-done', source:'dashboard', added:added }, '*');
+    try { rebuildDashboard(); } catch(_){}
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+{
+  "corpus_meta": {
+    "sha256_concat": "697d6acf5d8b14b0d9cb9fafd157d269119a390d94b6e4ac1330be5cdf42e037",
+    "n_sor_sorts": 160,
+    "note": "sha is of this calibration payload (self-describing); n coarse-rounded"
+  },
+  "volume_params": {
+    "0": {
+      "mu_ln": 11.84412,
+      "sigma_ln": 0.08589
+    },
+    "1": {
+      "mu_ln": 11.86323,
+      "sigma_ln": 0.08711
+    },
+    "2": {
+      "mu_ln": 11.45009,
+      "sigma_ln": 0.10687
+    },
+    "3": {
+      "mu_ln": 11.19331,
+      "sigma_ln": 0.08008
+    },
+    "4": {
+      "mu_ln": 11.80339,
+      "sigma_ln": 0.12703
+    }
+  },
+  "worked_params": {
+    "0": {
+      "mean": 238.81,
+      "std": 6.96,
+      "min": 219.4,
+      "max": 264.6
+    },
+    "1": {
+      "mean": 224.81,
+      "std": 9.49,
+      "min": 205.2,
+      "max": 255.2
+    },
+    "2": {
+      "mean": 212.22,
+      "std": 8.91,
+      "min": 193.8,
+      "max": 239.4
+    },
+    "3": {
+      "mean": 207.83,
+      "std": 6.51,
+      "min": 181.4,
+      "max": 222.6
+    },
+    "4": {
+      "mean": 208.01,
+      "std": 16.35,
+      "min": 171.0,
+      "max": 232.1
+    }
+  },
+  "paid_day_params": {
+    "mean": 4.1153,
+    "std": 0.133,
+    "min": 3.92,
+    "max": 4.475
+  },
+  "copula_r": [
+    [
+      1.0,
+      0.40747,
+      0.02385
+    ],
+    [
+      0.40747,
+      1.0,
+      0.05358
+    ],
+    [
+      0.02385,
+      0.05358,
+      1.0
+    ]
+  ],
+  "dest_order": [
+    "PD-1",
+    "PD-2",
+    "PD-3",
+    "PD-4",
+    "PD-5",
+    "PD-6",
+    "PD-7",
+    "PD-8",
+    "PD-9",
+    "PD-10",
+    "PD-11",
+    "PD-12",
+    "AIRSORT",
+    "BACK_FEEDS",
+    "SMALLS",
+    "SECONDARY",
+    "UNASSIGNED"
+  ],
+  "dirichlet_alpha": {
+    "PD-1": 32.299,
+    "PD-2": 22.1729,
+    "PD-3": 22.2421,
+    "PD-4": 29.7236,
+    "PD-5": 42.9729,
+    "PD-6": 27.6651,
+    "PD-7": 31.9199,
+    "PD-8": 24.0486,
+    "PD-9": 29.9148,
+    "PD-10": 18.3817,
+    "PD-11": 25.5056,
+    "PD-12": 25.8992,
+    "AIRSORT": 21.6053,
+    "BACK_FEEDS": 0.0507,
+    "SMALLS": 42.1091,
+    "SECONDARY": 0.048,
+    "UNASSIGNED": 0.0502
+  },
+  "dirichlet_alpha_by_dow": {
+    "0": {
+      "PD-1": 26.9283,
+      "PD-2": 24.5182,
+      "PD-3": 22.1538,
+      "PD-4": 33.73,
+      "PD-5": 37.2386,
+      "PD-6": 29.7239,
+      "PD-7": 31.531,
+      "PD-8": 22.3517,
+      "PD-9": 31.6997,
+      "PD-10": 17.276,
+      "PD-11": 28.2126,
+      "PD-12": 32.2358,
+      "AIRSORT": 21.9603,
+      "BACK_FEEDS": 0.0507,
+      "SMALLS": 41.2025,
+      "SECONDARY": 0.0483,
+      "UNASSIGNED": 0.0497
+    },
+    "1": {
+      "PD-1": 29.6724,
+      "PD-2": 22.2949,
+      "PD-3": 22.0854,
+      "PD-4": 31.7651,
+      "PD-5": 43.9195,
+      "PD-6": 26.8008,
+      "PD-7": 35.7027,
+      "PD-8": 23.7555,
+      "PD-9": 32.7112,
+      "PD-10": 18.505,
+      "PD-11": 27.4922,
+      "PD-12": 27.4041,
+      "AIRSORT": 19.8022,
+      "BACK_FEEDS": 0.0503,
+      "SMALLS": 38.1273,
+      "SECONDARY": 0.0485,
+      "UNASSIGNED": 0.0521
+    },
+    "2": {
+      "PD-1": 34.5375,
+      "PD-2": 22.305,
+      "PD-3": 26.1706,
+      "PD-4": 30.3523,
+      "PD-5": 44.0666,
+      "PD-6": 25.8315,
+      "PD-7": 31.0348,
+      "PD-8": 22.2376,
+      "PD-9": 28.5556,
+      "PD-10": 21.9939,
+      "PD-11": 24.0694,
+      "PD-12": 24.7615,
+      "AIRSORT": 21.906,
+      "BACK_FEEDS": 0.0513,
+      "SMALLS": 39.2232,
+      "SECONDARY": 0.0494,
+      "UNASSIGNED": 0.0477
+    },
+    "3": {
+      "PD-1": 35.0844,
+      "PD-2": 24.787,
+      "PD-3": 23.9585,
+      "PD-4": 25.9291,
+      "PD-5": 45.6884,
+      "PD-6": 27.4714,
+      "PD-7": 32.815,
+      "PD-8": 23.832,
+      "PD-9": 31.2918,
+      "PD-10": 18.7564,
+      "PD-11": 21.8792,
+      "PD-12": 23.907,
+      "AIRSORT": 23.5263,
+      "BACK_FEEDS": 0.0483,
+      "SMALLS": 45.5445,
+      "SECONDARY": 0.0475,
+      "UNASSIGNED": 0.0513
+    },
+    "4": {
+      "PD-1": 38.6518,
+      "PD-2": 22.8183,
+      "PD-3": 20.3056,
+      "PD-4": 26.8458,
+      "PD-5": 45.6596,
+      "PD-6": 31.5043,
+      "PD-7": 35.7752,
+      "PD-8": 23.9202,
+      "PD-9": 32.0528,
+      "PD-10": 16.6981,
+      "PD-11": 22.6672,
+      "PD-12": 22.9326,
+      "AIRSORT": 18.1322,
+      "BACK_FEEDS": 0.0492,
+      "SMALLS": 42.5528,
+      "SECONDARY": 0.0504,
+      "UNASSIGNED": 0.0492
+    }
+  },
+  "pph_target_by_dow": {
+    "0": 124.88,
+    "1": 127.54,
+    "2": 124.71,
+    "3": 125.64,
+    "4": 126.51
+  },
+  "pph_target_sd_by_dow": {
+    "0": 1.995,
+    "1": 3.465,
+    "2": 1.752,
+    "3": 1.12,
+    "4": 2.338
+  },
+  "pph_target_band_by_dow": {
+    "0": [
+      124.9,
+      129.7
+    ],
+    "1": [
+      122.7,
+      132.0
+    ],
+    "2": [
+      122.5,
+      127.8
+    ],
+    "3": [
+      120.6,
+      124.1
+    ],
+    "4": [
+      123.5,
+      130.4
+    ]
+  },
+  "pph_target_jitter": 0.3,
+  "worked_noise_cv": 0.02,
+  "performance": {
+    "p_bad_by_dow": {
+      "0": 0.2,
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0,
+      "4": 0.0
+    },
+    "typical_skew_alpha": -4.155,
+    "typical_loc": 1.0423,
+    "typical_scale": 0.03592,
+    "typical_min": 0.9333,
+    "typical_max": 1.0368,
+    "bad_mean": 0.9457,
+    "bad_std": 0.0192,
+    "bad_min": 0.913,
+    "bad_max": 0.9223
+  },
+  "sort_span_fixed": 3.5,
+  "sort_span_exc_p": 0.0333,
+  "sort_span_exc_lo": 4.12,
+  "sort_span_exc_hi": 4.12,
+  "phase_alpha": [
+    71.737,
+    114.483,
+    14.105
+  ],
+  "phase_floor_p3": 0.0235,
+  "spike_phase_p": [
+    0.3333,
+    0.6667,
+    0.0
+  ],
+  "spike_lambda_by_phase": {
+    "p1": 0.006,
+    "p2": 0.012,
+    "p3": 0.0
+  },
+  "spike_gamma_shape": 2.0,
+  "spike_gamma_scale": 1321.6,
+  "spike_reroute": {
+    "PD-9": 0.4,
+    "PD-11": 0.4
+  },
+  "direct_hour_frac": 0.8907,
+  "loader_pph_mu": 380.0,
+  "lbr_threshold": 520.0,
+  "loader_pph_max": 700.0,
+  "u_t_cap": 0.85,
+  "smalls_pcs_per_bag_mu": 11.5,
+  "smalls_pcs_per_bag_sigma": 1.5,
+  "smalls_pcs_per_bag_min": 8.0,
+  "smalls_pcs_per_bag_max": 16.0,
+  "roster": {
+    "size_mean": 272.5,
+    "size_sd": 17.1,
+    "size_min": 231,
+    "size_max": 317,
+    "ft_share": 0.563,
+    "outbound_share": 0.325,
+    "_n_sorts": 30
+  },
+  "id_taxonomy": {
+    "_statement": "Formats mirror the documented production taxonomy; every value/range below is fictional by construction \u2014 no real ID or real block boundary is published. The human block was chosen from a zero-occupancy gap in the observed ID space (verified private-side), so real/synthetic collision is structurally impossible, not just improbable.",
+    "human_id": {
+      "format": "7digit",
+      "block": [
+        2200000,
+        3099999
+      ]
+    },
+    "scan_id": {
+      "format": "AAA#######",
+      "note": "3 letters from fictional roster initials + 7 digits"
+    },
+    "machine_blocks": {
+      "format": "sequential-numeric",
+      "blocks": [
+        [
+          9900001,
+          9900060
+        ]
+      ]
+    },
+    "sls_bins": {
+      "prefix": "SLS",
+      "range": [
+        1,
+        40
+      ]
+    },
+    "dummy_stubs": {
+      "values": [
+        "00000"
+      ],
+      "five_digit_block": [
+        10000,
+        10999
+      ]
+    }
+  },
+  "anomaly_rates": {
+    "_statement": "Set from documented production failure modes (trap provenance), not fitted from the corpus.",
+    "scan_gt_reported_p": 0.1,
+    "id_substitution_per_sort": 1,
+    "shared_scanner_pairs_per_sort": 1,
+    "unresolvable_per_sort": 2,
+    "dummy_row_rate": 0.02
+  },
+  "pull_cadence": {
+    "gap_mean_min": 10.02,
+    "gap_sd_min": 2.29,
+    "first_pull_offset_min": 15.0,
+    "_n_gaps": 60
+  },
+  "building_volume_dow_bands": {
+    "Mon": {
+      "median": 127148,
+      "p25": 122571,
+      "p75": 130876,
+      "n": 30
+    },
+    "Tue": {
+      "median": 115987,
+      "p25": 114177,
+      "p75": 125901,
+      "n": 30
+    },
+    "Wed": {
+      "median": 105211,
+      "p25": 101924,
+      "p75": 115897,
+      "n": 30
+    },
+    "Thu": {
+      "median": 104505,
+      "p25": 97034,
+      "p75": 107493,
+      "n": 30
+    },
+    "Fri": {
+      "median": 112442,
+      "p25": 98132,
+      "p75": 117066,
+      "n": 30
+    }
+  },
+  "slic_shape": {
+    "n_entries": 80,
+    "slics_per_pd_range": [
+      4,
+      7
+    ],
+    "bays_per_slic_p": {
+      "0": 0.3571,
+      "1": 0.4048,
+      "2": 0.2024,
+      "3": 0.0357
+    },
+    "net_mu_ln": 6.7536,
+    "net_sigma_ln": 0.4882,
+    "sixchar_rate": 0.643,
+    "dow_variant_rate": 0.024,
+    "state_mix": {
+      "regional": 0.85,
+      "longhaul": 0.15
+    },
+    "_statement": "table SHAPE only \u2014 codes, names, bays, and per-lane values are generated fictionally by slic_synth.py"
+  },
+  "_noise": {
+    "seed": 7,
+    "method": "means/medians \u00d7U(0.97,1.03); sds \u00d7U(0.95,1.10); dirichlet alphas \u00d7U(0.95,1.05); correlations +U(-0.03,0.03) PSD-projected; bands widened 2%; counts rounded to 10s; ID ranges never published (fictional blocks); anomaly rates from documented failure modes, not fitted",
+    "fields_touched": 73
+  },
+  "_provenance": {
+    "generator": "synth-hub-generator/calibration/build_calibration.py",
+    "built": "2026-07-09T13:48:10",
+    "inputs": "private sort corpus (aggregates only) + live-pull fixtures (cadence/loader-level rates)",
+    "loader_pph_source": "default (fixtures absent) \u2014 documented heuristic",
+    "n_sorts_with_sor_detail": 30,
+    "n_sorts_with_phase_series": 160
+  }
+}

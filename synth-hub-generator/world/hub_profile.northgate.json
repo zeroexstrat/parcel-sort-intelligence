@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "_comment": "NORTHGATE (NGATE) — the fictional hub shared by the HII public demo and the twilight-reconciliation-env packet (SPEC v2 §0.1). Mirrors the pilot hub's SHAPE (12 outbound PD belts + HVD-13 excluded + air + smalls + DWS inbound) with fictional values: coordinators, site label, file prefix, and mildly perturbed operational constants. Everything here is synthetic/generic — publishable. Boots the tracker via Live-Sort/embed_profile.py with zero code edits (WS2 mechanism).",
+  "identity": {
+    "hub_code": "NGATE",
+    "site": "NORTHGATE Twilight",
+    "file_prefix": "ngate",
+    "slic": "0424"
+  },
+  "author": {
+    "name": "Rafael Almeida"
+  },
+  "freshness": { "live_ms": 600000, "stale_ms": 1800000 },
+  "topology": {
+    "excluded_belts": ["BUILDING", "AUDITS", "PD13HVD", "INBUILD"],
+    "outbound_pd_belts": ["PD-01", "PD-02", "PD-03", "PD-04", "PD-05", "PD-06", "PD-07", "PD-08", "PD-09", "PD-10", "PD-11", "PD-12"],
+    "coord_groups": [
+      { "name": "PD 01–04", "zone": "Zone 1", "display": "PD-01→04", "coordinator": "Prescott", "belts": ["PD-01", "PD-02", "PD-03", "PD-04"] },
+      { "name": "PD 05–08", "zone": "Zone 2", "display": "PD-05→08", "coordinator": "Whitcomb", "belts": ["PD-05", "PD-06", "PD-07", "PD-08"] },
+      { "name": "PD 09–12", "zone": "Zone 3", "display": "PD-09→12", "coordinator": "Calloway", "belts": ["PD-09", "PD-10", "PD-11", "PD-12"] },
+      { "name": "Smalls Sort", "coordinator": "Ashford", "belts": ["SLS01", "SLS02", "SS"] },
+      { "name": "Air", "display": "Air Recovery", "coordinator": "Delgado", "belts": ["AIRSORT", "AF02BLU", "SSAIR01"] },
+      { "name": "Inbound (DWS)", "zone": "Primary", "coordinator": "Munroe", "chip": false, "belts": ["DWSSCAN"] }
+    ],
+    "outbound_zones": [
+      { "key": "z1", "name": "Zone 1", "label": "Z1", "coordinator": "Prescott", "belts": ["PD-01", "PD-02", "PD-03", "PD-04"] },
+      { "key": "z2", "name": "Zone 2", "label": "Z2", "coordinator": "Whitcomb", "belts": ["PD-05", "PD-06", "PD-07", "PD-08"] },
+      { "key": "z3", "name": "Zone 3", "label": "Z3", "coordinator": "Calloway", "belts": ["PD-09", "PD-10", "PD-11", "PD-12"] }
+    ]
+  },
+  "sort_profile": {
+    "sort_code": "T",
+    "cutoff_hhmm": [23, 59],
+    "sort_window_hrs": 4.0,
+    "pd_max": 4.5,
+    "paid_day_target": 4.0,
+    "plan_pph_range": [116, 122]
+  },
+  "export_schemas": {
+    "hub": {
+      "label": "SCANTRACK Hub Summary",
+      "required": ["LooseOutbound", "BagsLinked", "Gross Volume"],
+      "requiredAt": { "0": "Belt" }
+    },
+    "emp": {
+      "label": "SCANTRACK Employee Summary",
+      "required": ["User", "Belt", "Total Packages", "Total Scan Hours", "First Scan Timestamp", "Last Scan Timestamp"]
+    },
+    "sorHeader": {
+      "label": "SPR Header",
+      "required": ["ActualHours", "ActualPaidDay", "ActualVolume"]
+    },
+    "sorOps": {
+      "label": "SPR Operations",
+      "required": ["Operation", "ActualNetVolume", "ActualStaffing", "ActualHours"]
+    },
+    "sorXlsx": {
+      "label": "SPR workbook",
+      "required": ["Employee ID header row"]
+    }
+  },
+  "metric_contract": {
+    "schema": "ngate.metric_contract.v1",
+    "_embedded": "NGATE synthetic contract — plausible perturbations of the pilot-hub-shaped constants, NOT fitted production values.",
+    "gamma_weekly": { "canonical_value": 0.978 },
+    "structural_constants": {
+      "kappa_dow_steady": { "Monday": 0.405, "Tuesday": 0.392, "Wednesday": 0.383, "Thursday": 0.377, "Friday": 0.327 },
+      "rho_pd_hub": { "value": 0.515 },
+      "u_t_cap": { "value": 0.85 }
+    }
+  }
+}

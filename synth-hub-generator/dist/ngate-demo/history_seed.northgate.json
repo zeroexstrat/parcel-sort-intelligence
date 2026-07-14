@@ -1,0 +1,369 @@
+{
+  "_meta": {
+    "world": "NORTHGATE / NGATE",
+    "generator": "emit_hub_corpus.py (seed 17)",
+    "statement": "Synthetic history \u2014 Monte Carlo sorts from noised calibration."
+  },
+  "sorts": [
+    {
+      "date": "2026-04-22",
+      "dow": "Wed",
+      "volume": 99505,
+      "pph": 126.21,
+      "paid_day": 4.0291,
+      "worked": 195,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-04-23",
+      "dow": "Thu",
+      "volume": 68516,
+      "pph": 125.16,
+      "paid_day": 4.2147,
+      "worked": 140,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-04-24",
+      "dow": "Fri",
+      "volume": 111177,
+      "pph": 130.72,
+      "paid_day": 4.1998,
+      "worked": 204,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-04-27",
+      "dow": "Mon",
+      "volume": 130889,
+      "pph": 128.86,
+      "paid_day": 4.084,
+      "worked": 244,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-04-28",
+      "dow": "Tue",
+      "volume": 149249,
+      "pph": 126.53,
+      "paid_day": 4.0652,
+      "worked": 293,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-04-29",
+      "dow": "Wed",
+      "volume": 82967,
+      "pph": 127.87,
+      "paid_day": 4.2697,
+      "worked": 156,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-04-30",
+      "dow": "Thu",
+      "volume": 78085,
+      "pph": 119.97,
+      "paid_day": 4.3677,
+      "worked": 140,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-01",
+      "dow": "Fri",
+      "volume": 136511,
+      "pph": 126.03,
+      "paid_day": 4.2725,
+      "worked": 252,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-04",
+      "dow": "Mon",
+      "volume": 153215,
+      "pph": 115.2,
+      "paid_day": 4.1028,
+      "worked": 292,
+      "is_bad_day": 1
+    },
+    {
+      "date": "2026-05-05",
+      "dow": "Tue",
+      "volume": 176486,
+      "pph": 126.66,
+      "paid_day": 4.1009,
+      "worked": 345,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-06",
+      "dow": "Wed",
+      "volume": 104085,
+      "pph": 131.0,
+      "paid_day": 4.2236,
+      "worked": 196,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-07",
+      "dow": "Thu",
+      "volume": 71743,
+      "pph": 126.32,
+      "paid_day": 4.1289,
+      "worked": 140,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-08",
+      "dow": "Fri",
+      "volume": 123225,
+      "pph": 131.54,
+      "paid_day": 4.1276,
+      "worked": 233,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-11",
+      "dow": "Mon",
+      "volume": 136367,
+      "pph": 125.24,
+      "paid_day": 4.1056,
+      "worked": 264,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-12",
+      "dow": "Tue",
+      "volume": 157171,
+      "pph": 134.35,
+      "paid_day": 4.1567,
+      "worked": 293,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-13",
+      "dow": "Wed",
+      "volume": 99594,
+      "pph": 118.22,
+      "paid_day": 4.1194,
+      "worked": 192,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-14",
+      "dow": "Thu",
+      "volume": 79438,
+      "pph": 128.67,
+      "paid_day": 3.972,
+      "worked": 158,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-15",
+      "dow": "Fri",
+      "volume": 140401,
+      "pph": 127.37,
+      "paid_day": 4.0511,
+      "worked": 277,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-18",
+      "dow": "Mon",
+      "volume": 124635,
+      "pph": 124.57,
+      "paid_day": 4.3431,
+      "worked": 231,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-19",
+      "dow": "Tue",
+      "volume": 144627,
+      "pph": 125.42,
+      "paid_day": 4.1039,
+      "worked": 292,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-20",
+      "dow": "Wed",
+      "volume": 90249,
+      "pph": 124.9,
+      "paid_day": 4.0761,
+      "worked": 180,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-21",
+      "dow": "Thu",
+      "volume": 72328,
+      "pph": 123.72,
+      "paid_day": 3.9921,
+      "worked": 145,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-22",
+      "dow": "Fri",
+      "volume": 152632,
+      "pph": 128.78,
+      "paid_day": 3.9647,
+      "worked": 292,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-25",
+      "dow": "Mon",
+      "volume": 163095,
+      "pph": 132.08,
+      "paid_day": 4.2941,
+      "worked": 295,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-26",
+      "dow": "Tue",
+      "volume": 158225,
+      "pph": 130.85,
+      "paid_day": 4.1718,
+      "worked": 312,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-27",
+      "dow": "Wed",
+      "volume": 86732,
+      "pph": 125.29,
+      "paid_day": 4.3443,
+      "worked": 162,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-28",
+      "dow": "Thu",
+      "volume": 72253,
+      "pph": 127.81,
+      "paid_day": 4.0169,
+      "worked": 147,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-05-29",
+      "dow": "Fri",
+      "volume": 147519,
+      "pph": 122.21,
+      "paid_day": 4.0684,
+      "worked": 290,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-01",
+      "dow": "Mon",
+      "volume": 140961,
+      "pph": 129.28,
+      "paid_day": 4.1422,
+      "worked": 270,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-02",
+      "dow": "Tue",
+      "volume": 159993,
+      "pph": 132.8,
+      "paid_day": 4.1715,
+      "worked": 295,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-03",
+      "dow": "Wed",
+      "volume": 105434,
+      "pph": 126.52,
+      "paid_day": 4.1543,
+      "worked": 209,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-04",
+      "dow": "Thu",
+      "volume": 72401,
+      "pph": 124.62,
+      "paid_day": 4.0011,
+      "worked": 144,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-05",
+      "dow": "Fri",
+      "volume": 138610,
+      "pph": 123.63,
+      "paid_day": 4.0787,
+      "worked": 275,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-08",
+      "dow": "Mon",
+      "volume": 159514,
+      "pph": 129.5,
+      "paid_day": 4.2041,
+      "worked": 315,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-09",
+      "dow": "Tue",
+      "volume": 139704,
+      "pph": 130.56,
+      "paid_day": 4.2026,
+      "worked": 261,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-10",
+      "dow": "Wed",
+      "volume": 87327,
+      "pph": 125.77,
+      "paid_day": 4.1149,
+      "worked": 172,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-11",
+      "dow": "Thu",
+      "volume": 71899,
+      "pph": 127.53,
+      "paid_day": 4.3532,
+      "worked": 140,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-12",
+      "dow": "Fri",
+      "volume": 116844,
+      "pph": 129.16,
+      "paid_day": 4.197,
+      "worked": 217,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-15",
+      "dow": "Mon",
+      "volume": 133327,
+      "pph": 126.64,
+      "paid_day": 4.0027,
+      "worked": 265,
+      "is_bad_day": 0
+    },
+    {
+      "date": "2026-06-16",
+      "dow": "Tue",
+      "volume": 128266,
+      "pph": 127.22,
+      "paid_day": 4.0632,
+      "worked": 253,
+      "is_bad_day": 0
+    }
+  ]
+}

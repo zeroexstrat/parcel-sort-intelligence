@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sort Training · Northgate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet"
+        media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet"
+  </noscript>
+  <link rel="stylesheet" href="css/ups.css">
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- IDB blocked banner -->
+<div id="idb-blocked-banner">
+  Another tab is blocking a required database upgrade. Please close all other tabs
+  running this app, then reload this page.
+  <button onclick="location.reload()">Reload Now</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     HEADER  (hidden on login page)
+══════════════════════════════════════════ -->
+<header id="app-header" style="display:none;">
+  <div class="header-title">Northgate · Twilight Sort</div>
+  <div class="h-sep"></div>
+  <div class="storage-badge" id="storage-badge" onclick="App.handleStorageBadgeClick()"
+       title="Click to connect shared data folder">
+    <div class="storage-dot"></div>
+    <span class="storage-label">Local only</span>
+  </div>
+  <div class="h-space"></div>
+  <div class="header-user">
+    <span id="hdr-id"></span>
+    <button class="btn-hdr" onclick="App.logout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     PAGE: LOGIN
+══════════════════════════════════════════ -->
+<div id="page-login" class="page page-active">
+
+  <!-- Step 1: Cinematic landing / Role select -->
+  <div id="login-landing" class="login-landing">
+    <div class="landing-photo">
+      <div class="landing-photo-overlay"></div>
+    </div>
+
+    <div class="landing-content">
+      <!-- Top bar: logo (left) + Northgate mark (right) -->
+      <div class="landing-top">
+        <div class="landing-brand">
+        </div>
+        <div class="landing-location-block">
+          <div class="landing-location-rule"></div>
+          <div class="landing-location">Northgate</div>
+          <div class="landing-location-sub">Massachusetts</div>
+        </div>
+      </div>
+
+      <!-- Center: hero typography -->
+      <div class="landing-hero">
+        <div class="landing-hero-inner">
+          <div class="landing-eyebrow">Belt routing training</div>
+          <div class="landing-headline">
+            Every package,<br>
+            <span class="landing-headline-accent">the right belt.</span>
+          </div>
+          <div class="landing-sub">
+            Calibrated questions drawn from the live routing table.
+            Practice the routes that matter most until they're second nature.
+          </div>
+        </div>
+      </div>
+
+      <!-- Role bar -->
+      <div class="landing-role-bar">
+        <div class="landing-role-prompt">
+          <div class="landing-role-step">Sign in</div>
+          <div class="landing-role-title">Choose your role</div>
+        </div>
+        <div class="landing-role-card" onclick="App.selectRole('sorter')">
+          <div class="landing-role-name">Sorter</div>
+          <div class="landing-role-desc">Belt routing quiz</div>
+          <div class="landing-role-arrow">→</div>
+        </div>
+        <div class="landing-role-card" onclick="App.selectRole('supervisor')">
+          <div class="landing-role-name">Supervisor</div>
+          <div class="landing-role-desc">Aisle stats + roster</div>
+          <div class="landing-role-arrow">→</div>
+        </div>
+        <div class="landing-role-card" onclick="App.selectRole('admin')">
+          <div class="landing-role-name">Admin</div>
+          <div class="landing-role-desc">Config + truth edits</div>
+          <div class="landing-role-arrow">→</div>
+        </div>
+      </div>
+
+      <div class="landing-init-status" id="landing-init">
+        <span class="landing-init-dot"></span>
+        <span class="landing-init-label">Initializing routing data...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Credential entry -->
+  <div id="login-creds" class="login-center" style="display:none;">
+    <div class="login-box">
+      <button class="btn-ghost login-back" onclick="App.backToLanding()">&#8592; Back</button>
+      <div class="login-logo">
+        <div class="login-logo-sub" id="login-role-label">Sorter</div>
+      </div>
+
+      <div class="fl">
+        <label class="lbl" for="inp-id">Employee ID</label>
+        <input class="inp" type="text" id="inp-id" placeholder="e.g. 1234567"
+               autocomplete="off" onkeydown="if(event.key==='Enter') App.login()">
+      </div>
+
+      <div id="pwd-field" class="fl" style="display:none;margin-top:14px;">
+        <label class="lbl" for="inp-pwd">Password</label>
+        <input class="inp" type="password" id="inp-pwd" placeholder="Enter password"
+               autocomplete="current-password" onkeydown="if(event.key==='Enter') App.login()">
+      </div>
+
+      <button class="btn-primary" onclick="App.login()">Begin</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: SORTER
+══════════════════════════════════════════ -->
+<div id="page-sorter" class="page page-right">
+  <div class="app-wrap">
+
+    <!-- Stats -->
+    <div class="stats-row stats-row-4">
+      <div class="stat-box"><div class="stat-val" id="s-ans">0</div><div class="stat-lbl">Answered</div></div>
+      <div class="stat-box"><div class="stat-val" id="s-cor">0</div><div class="stat-lbl">Correct</div></div>
+      <div class="stat-box"><div class="stat-val" id="s-pct">—</div><div class="stat-lbl">Accuracy</div></div>
+      <div class="stat-box"><div class="stat-val" id="s-elo">—</div><div class="stat-lbl" id="s-elo-lbl">Rating</div></div>
+    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+
+    <!-- Quiz card -->
+    <div id="sorter-quiz">
+      <div class="card quiz-card">
+        <div class="quiz-eyebrow">Belt routing question</div>
+        <div class="card-hd quiz-prompt">Which belt does this package belong on?</div>
+        <div class="quiz-label-wrap"><div id="q-label"></div></div>
+        <div class="choice-grid" id="q-choices"></div>
+        <div class="fb" id="q-fb"></div>
+        <div class="quiz-action-row">
+          <button class="btn-next" id="btn-next" onclick="Quiz.nextQuestion()">Next Question</button>
+          <button class="btn-flag" id="btn-flag" style="display:none;"
+            onclick="App.openFlagModal(this.dataset.zip, this.dataset.belt)">
+            ⚑ Flag Answer
+          </button>
+        </div>
+      </div>
+      <!-- Big visible End Quiz + Sign Out -->
+      <div class="quiz-foot-row">
+        <button class="btn-end-quiz"
+          onclick="Quiz.endSession(); App.showResults()">
+          End quiz &amp; see my score →
+        </button>
+        <button class="btn-sign-out" onclick="App.logout()">Sign out</button>
+        <div class="quiz-kbd-hint">
+          <kbd>1</kbd>–<kbd>4</kbd> pick · <kbd>Space</kbd> next · <kbd>Esc</kbd> end
+        </div>
+      </div>
+    </div>
+
+    <!-- Results card -->
+    <div id="sorter-results" style="display:none;">
+      <div class="card results-card">
+        <div class="results-eyebrow">Session complete · nice work</div>
+        <div class="results-headline">
+          Your <span class="results-headline-accent">score.</span>
+        </div>
+        <div class="results-score-block">
+          <div class="result-score" id="res-score">—</div>
+          <div class="result-score-lbl">accuracy</div>
+        </div>
+        <div id="res-grade" class="results-grade-row"></div>
+        <div class="results-detail" id="res-detail"></div>
+        <div id="res-adaptive"></div>
+
+        <div class="results-action-row">
+          <button class="btn-end-quiz btn-end-quiz-big"
+                  onclick="App.showQuiz(); Quiz.startSession()">
+            Start new quiz session →
+          </button>
+          <button class="btn-ghost btn-ladder" onclick="App.showLadder()">
+            Sort aisle ladder 🏆
+          </button>
+          <button class="btn-sign-out btn-sign-out-big" onclick="App.logout()">
+            Sign out ↪
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard (sorter view) -->
+    <div id="sorter-ladder" style="display:none;">
+      <div id="sorter-ladder-body"></div>
+      <div class="quiz-foot-row">
+        <button class="btn-end-quiz" onclick="App.hideLadder()">← Back to my score</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: SUPERVISOR
+══════════════════════════════════════════ -->
+<div id="page-supervisor" class="page page-right">
+  <div class="app-wrap">
+    <div class="tabs">
+      <button class="tab on"  onclick="App.svTab('overview')">Overview</button>
+      <button class="tab"     onclick="App.svTab('belts')">Belt Stats</button>
+      <button class="tab"     onclick="App.svTab('sorters')">Sorters</button>
+      <button class="tab"     onclick="App.svTab('aisles')">Sort Aisles</button>
+      <button class="tab"     onclick="App.svTab('matrix')">Missort Matrix</button>
+      <button class="tab"     onclick="App.svTab('knowledge')">Knowledge Map</button>
+      <button class="tab"     onclick="App.svTab('heatmap')">Heatmap</button>
+      <button class="tab"     onclick="App.svTab('overlays')">Overlays</button>
+      <button class="tab"     onclick="App.svTab('roster')">Sorter Roster</button>
+      <button class="tab"     onclick="App.svTab('flags')" style="position:relative;">
+        Flags <span id="sv-flags-badge" class="tab-badge"></span>
+      </button>
+      <button class="tab"     onclick="App.svTab('ladder')">Ladder</button>
+    </div>
+
+    <!-- Overview -->
+    <div id="sv-overview">
+      <div class="sv-welcome-bar">
+        <div class="sv-welcome-text">
+          <div class="sv-welcome-greeting" id="sv-welcome">Welcome</div>
+          <div class="sv-welcome-role">Supervisor</div>
+        </div>
+      </div>
+      <div id="ov-storage-mode" class="banner banner-warn" style="margin-bottom:18px;">
+        Checking storage mode...
+      </div>
+      <div class="metrics" id="sv-met"></div>
+      <div id="sv-callouts" class="callout-row" style="display:none;"></div>
+      <div class="card">
+        <div class="card-hd">Recent Events</div>
+        <table id="sv-recent">
+          <thead><tr><th>Sorter</th><th>ZIP</th><th>Expected</th><th>Actual</th><th>Result</th><th>Time</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Belt Stats -->
+    <div id="sv-belts" style="display:none;">
+      <div class="card">
+        <div class="card-hd">Error Rate by Belt — worst first</div>
+        <table id="sv-btbl">
+          <thead><tr><th>Belt</th><th>Total</th><th>Errors</th><th>Accuracy</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sorters -->
+    <div id="sv-sorters" style="display:none;">
+      <div class="card">
+        <div class="card-hd">Sorter Performance</div>
+        <table id="sv-stbl">
+          <thead><tr><th>Employee ID</th><th>Answered</th><th>Correct</th><th>Accuracy</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Missort Matrix -->
+    <div id="sv-matrix" style="display:none;"></div>
+
+    <!-- Knowledge Map -->
+    <div id="sv-knowledge" style="display:none;"></div>
+
+    <!-- Heatmap (time-of-day × day-of-week) -->
+    <div id="sv-heatmap" style="display:none;"></div>
+
+    <!-- Overlays -->
+    <div id="sv-overlays" style="display:none;">
+      <div class="card">
+        <div class="card-hd">Add Routing Overlay</div>
+        <div class="banner banner-info">
+          Overlays override truth-table routing. All additions are audit-logged.
+          Truth table is never mutated.
+        </div>
+        <div class="ov-form">
+          <div class="fl">
+            <label class="lbl">ZIP</label>
+            <input class="inp" id="ov-zip" placeholder="12345" maxlength="5">
+          </div>
+          <div class="fl">
+            <label class="lbl">Override Belt</label>
+            <select class="inp" id="ov-belt"></select>
+          </div>
+          <div class="fl">
+            <label class="lbl">Reason</label>
+            <input class="inp" id="ov-rsn" placeholder="e.g. Temporary combine">
+          </div>
+          <button class="btn-gold" style="height:40px;align-self:end;" onclick="App.addOverlay()">Add</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd">Active Overlays</div>
+        <table id="sv-ov">
+          <thead><tr><th>ZIP</th><th>Override Belt</th><th>Reason</th><th>Actor</th><th>Timestamp</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sorter Roster -->
+    <div id="sv-roster" style="display:none;"></div>
+
+    <!-- Ladder (Elo leaderboard) -->
+    <div id="sv-ladder" style="display:none;"></div>
+
+    <!-- Sort Aisles -->
+    <div id="sv-aisles" style="display:none;"></div>
+
+    <!-- Flags -->
+    <div id="sv-flags" style="display:none;">
+      <div class="card">
+        <div class="card-hd">Sorter Flags — Pending Review</div>
+        <div class="banner banner-info" style="margin-bottom:14px;">
+          Sorters flagged these answers as potentially incorrect.
+          Creating an overlay routes the ZIP differently in training until the truth table is updated.
+        </div>
+        <table>
+          <thead><tr><th>ZIP</th><th>Shown As</th><th>Suggested</th><th>Reason</th><th>Flagged By</th><th>Time</th><th>Action</th></tr></thead>
+          <tbody id="sv-flags-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: ADMIN
+══════════════════════════════════════════ -->
+<div id="page-admin" class="page page-right">
+  <div class="app-wrap">
+
+    <div class="admin-welcome">
+      <div class="admin-welcome-text">
+        <div class="admin-greeting" id="ad-welcome">Welcome</div>
+        <div class="admin-role-label">Administrator</div>
+      </div>
+      <div class="admin-role-badge">Admin</div>
+    </div>
+
+    <div class="admin-analytics-bar">
+      <span class="aba-lbl">Sort Analytics</span>
+      <button class="btn-ghost" onclick="App.viewAnalyticsAsAdmin('overview')">Overview</button>
+      <button class="btn-ghost" onclick="App.viewAnalyticsAsAdmin('sorters')">Sorters</button>
+      <button class="btn-ghost" onclick="App.viewAnalyticsAsAdmin('belts')">Belt Stats</button>
+      <button class="btn-ghost" onclick="App.viewAnalyticsAsAdmin('matrix')">Missort Matrix</button>
+      <button class="btn-ghost" onclick="App.viewAnalyticsAsAdmin('knowledge')">Knowledge Map</button>
+      <button class="btn-ghost" onclick="App.viewAnalyticsAsAdmin('roster')">Sorter Roster</button>
+      <button class="btn-ghost" onclick="App.viewAnalyticsAsAdmin('flags')">Flags</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" onclick="App.adTab('supervisors')">Supervisor Access</button>
+      <button class="tab"    onclick="App.adTab('flags')">Flags</button>
+      <button class="tab"    onclick="App.adTab('health')">System Health</button>
+      <button class="tab"    onclick="App.adTab('data')">Data Management</button>
+      <button class="tab"    onclick="App.adTab('quiz')">Quiz Settings</button>
+      <button class="tab"    onclick="App.adTab('sort-test')">Sort Test Builder</button>
+      <button class="tab"    onclick="App.adTab('passwords')">Passwords</button>
+      <button class="tab"    onclick="App.adTab('truth')">Truth Edits</button>
+    </div>
+
+    <!-- Supervisor Access -->
+    <div id="ad-supervisors">
+      <div class="card">
+        <div class="card-hd">Grant Supervisor Access</div>
+        <p style="font-size:12px;color:var(--text-soft);margin-bottom:14px;line-height:1.6;">
+          Only employees listed here can log in as Supervisor.
+          Admins always have full access and do not need to be listed.
+        </p>
+        <div class="ov-form" style="grid-template-columns:1fr 1fr auto;">
+          <div class="fl">
+            <label class="lbl">Employee ID</label>
+            <input class="inp" id="ad-sup-id" placeholder="e.g. AB1234" autocomplete="off">
+          </div>
+          <div class="fl">
+            <label class="lbl">Name (optional)</label>
+            <input class="inp" id="ad-sup-name" placeholder="e.g. Jane Doe">
+          </div>
+          <button class="btn-gold" style="height:40px;align-self:end;" onclick="App.addSupervisor()">
+            Grant Access
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd">Approved Supervisors</div>
+        <table>
+          <thead><tr><th>Employee ID</th><th>Name</th><th>Added By</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody id="ad-sup-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Flags (Admin) -->
+    <div id="ad-flags" style="display:none;">
+      <div class="card">
+        <div class="card-hd">All Sorter Flags</div>
+        <div class="banner banner-warn" style="margin-bottom:14px;">
+          "Needs Truth Edit" escalates the flag so it appears in the pipeline backlog.
+          Only admins can trigger a truth table reload after corrections are made.
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ZIP</th><th>Shown As</th><th>Suggested</th><th>Reason</th>
+              <th>Flagged By</th><th>Approved By</th><th>Status</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="ad-flags-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div id="ad-health" style="display:none;">
+      <div class="metrics" style="grid-template-columns:repeat(4,1fr);">
+        <div class="metric">
+          <div class="metric-val" id="h-truth-cnt">—</div>
+          <div class="metric-lbl">Truth Table ZIPs</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="h-events-cnt">—</div>
+          <div class="metric-lbl">Sort Events</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="h-overlays-cnt">—</div>
+          <div class="metric-lbl">Active Overlays</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="h-sups-cnt">—</div>
+          <div class="metric-lbl">Approved Supervisors</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd">Storage Mode</div>
+        <div class="db-row"><div class="dot" id="h-storage-dot"></div><span id="h-storage-txt">Checking...</span></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">Truth Table Status</div>
+        <div class="db-row"><div class="dot" id="h-truth-dot"></div><span id="h-truth-txt">Checking...</span></div>
+      </div>
+    </div>
+
+    <!-- Quiz Settings -->
+    <div id="ad-quiz" style="display:none;"></div>
+
+    <!-- Sort Test Builder -->
+    <div id="ad-sort-test" style="display:none;"></div>
+
+    <!-- Password Management -->
+    <div id="ad-passwords" style="display:none;"></div>
+
+    <!-- Truth Table Editor -->
+    <div id="ad-truth" style="display:none;"></div>
+
+    <!-- Data Management -->
+    <div id="ad-data" style="display:none;">
+
+      <div class="card">
+        <div class="card-hd">Shared Drive Connection</div>
+        <div class="db-row" style="margin-bottom:16px;">
+          <div class="dot" id="db-dot"></div>
+          <span id="db-txt">Checking...</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn-gold" onclick="App.connectSharedFolder()">Connect Shared Folder</button>
+          <button class="btn-ghost" onclick="App.disconnectSharedFolder()">Disconnect</button>
+        </div>
+        <p style="font-size:12px;color:var(--text-soft);margin-top:12px;line-height:1.6;">
+          Point to the <code>shared-data/</code> folder on your shared drive.
+          All sort events, overlays, supervisor roles, and audit logs will be read and written
+          as files on that drive. Any machine with the drive mounted and this folder connected
+          will see the same data.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">Truth Table</div>
+        <p style="font-size:12px;color:var(--text-soft);margin-bottom:14px;line-height:1.6;">
+          Run this once on each new machine to initialize local routing data.
+          The data comes from <code>js/truth-data.js</code> — regenerate it via
+          <code>pipeline/gen_truth_twilight.py</code> whenever route assignments change.
+        </p>
+        <button class="btn-gold" id="btn-load-truth" onclick="App.loadTruth()">Load Truth Table</button>
+        <div id="load-prog" style="margin-top:10px;font-size:12px;color:var(--text-soft);"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">Export Data</div>
+        <div class="export-grid">
+          <div class="export-card" onclick="App.exportEventsCSV()">
+            <div class="export-title">Sort Events CSV</div>
+            <div class="export-desc">All training answers — sorter, ZIP, belt, result, timestamp</div>
+          </div>
+          <div class="export-card" onclick="App.exportOverlaysCSV()">
+            <div class="export-title">Overlays CSV</div>
+            <div class="export-desc">Active routing overrides with full audit trail</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">Danger Zone</div>
+        <p style="font-size:12px;color:var(--text-soft);margin-bottom:14px;">
+          These actions are permanent and cannot be undone.
+        </p>
+        <button class="btn-danger" onclick="App.clearEvents()">Clear All Sort Events</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     FLAG MODAL
+══════════════════════════════════════════ -->
+<div id="flag-modal" class="flag-modal-backdrop">
+  <div class="flag-modal-box">
+    <div class="flag-modal-hd">Flag This Answer</div>
+    <p class="flag-modal-sub">
+      ZIP <strong id="flag-zip"></strong> &nbsp;&middot;&nbsp;
+      Shown as: <strong id="flag-belt"></strong>
+    </p>
+    <div class="fl">
+      <label class="lbl">Which belt do you think it should be?</label>
+      <select class="inp" id="flag-suggested-belt">
+        <option value="">— I'm not sure —</option>
+      </select>
+    </div>
+    <div class="fl" style="margin-top:10px;">
+      <label class="lbl">Why do you think this belt is wrong?</label>
+      <textarea class="inp" id="flag-reason" rows="3"
+        placeholder="e.g. Supervisor directed this ZIP to Top White last shift"
+        style="resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-gold" onclick="App.submitFlag()">Submit Flag</button>
+      <button class="btn-ghost" onclick="App.closeFlagModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCRIPTS  (load order matters)
+══════════════════════════════════════════ -->
+<script src="js/config.js"></script>
+<script src="js/truth-data.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/adaptive.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ovBelt = document.getElementById('ov-belt');
+    if (ovBelt) {
+      BELT_NAMES.forEach((name, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = name;
+        ovBelt.appendChild(opt);
+      });
+    }
+    const flagBelt = document.getElementById('flag-suggested-belt');
+    if (flagBelt) {
+      BELT_NAMES.forEach((name, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = name;
+        flagBelt.appendChild(opt);
+      });
+    }
+    if (window.App && typeof App.init === 'function') App.init();
+  });
+</script>
+
+</body>
+</html>

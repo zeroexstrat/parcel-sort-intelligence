@@ -1,0 +1,17 @@
+[project]
+name = "parcel-sort-intelligence"
+version = "1.0.0"
+description = "Offline operational intelligence demonstrated with a reproducible synthetic parcel hub"
+requires-python = ">=3.10"
+dependencies = [
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["synth-hub-generator/tests"]
+python_files = ["test_*.py"]

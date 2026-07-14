@@ -1,0 +1,128 @@
+{
+  "capsule": "ngate_generator_fidelity.v1",
+  "generated_at": "2026-07-09T13:58:45",
+  "verdict": "pass",
+  "gates": [
+    {
+      "gate": "G1",
+      "check": "one sort date, equal to manifest",
+      "pass": true,
+      "detail": {
+        "found": [
+          "2026-06-17"
+        ],
+        "expected": "2026-06-17"
+      }
+    },
+    {
+      "gate": "G2",
+      "check": "every emitted pull recognized by the adapter",
+      "pass": true,
+      "detail": {
+        "pulls": 20,
+        "hub_snapshots": 20,
+        "employee_snapshots": 20,
+        "sor_header_snapshots": 20,
+        "sor_operations_snapshots": 20,
+        "ignored": 0
+      }
+    },
+    {
+      "gate": "G3",
+      "check": "cumulative net volume non-decreasing across pulls",
+      "pass": true,
+      "detail": {
+        "points": 20,
+        "first": 6679,
+        "last": 67967
+      }
+    },
+    {
+      "gate": "G4",
+      "check": "latest PD net / building volume within contract rho \u00b1 0.03",
+      "pass": true,
+      "detail": {
+        "emitted": 0.5061,
+        "contract": 0.515
+      }
+    },
+    {
+      "gate": "G5",
+      "check": "zone-3 PD share within contract kappa(Wednesday) \u00b1 0.02",
+      "pass": true,
+      "detail": {
+        "emitted": 0.3824,
+        "contract": 0.383
+      }
+    },
+    {
+      "gate": "G6",
+      "check": "adjusted-building-PPH overlap ready and plausible",
+      "pass": true,
+      "detail": {
+        "status": "ready-real-overlap",
+        "igate_net_over_sor_hours": 85.135
+      }
+    },
+    {
+      "gate": "G7",
+      "check": "PD loader count plausible (>= 40)",
+      "pass": true,
+      "detail": {
+        "latest_employee_pd_loaders": 75
+      }
+    }
+  ],
+  "inputs": {
+    "replay": "~/Desktop/Hub-Intelligence-Initiative/synth-hub-generator/dist/ngate-demo/replay",
+    "csv_files": 80,
+    "skeleton_volume": 102044,
+    "profile": "~/Desktop/Hub-Intelligence-Initiative/synth-hub-generator/world/hub_profile.northgate.json",
+    "adapter": "~/Desktop/Hub-Intelligence-Initiative/Operations/adapters/live_sort_ingestion.py"
+  },
+  "adapter_summary": {
+    "recognized": 80,
+    "ignored": 0,
+    "sort_dates": {
+      "2026-06-17": {
+        "hub_snapshots": 20,
+        "employee_snapshots": 20,
+        "sor_header_snapshots": 20,
+        "sor_operations_snapshots": 20,
+        "first_pull_time": "18:16:23",
+        "last_pull_time": "21:35:33",
+        "first_hub_pd_total": 5536,
+        "latest_hub_pd_total": 55773,
+        "latest_hub_igate_net_total": 67967,
+        "latest_hub_pd_igate_net_total": 51646,
+        "latest_sor_actual_hours": 798.34,
+        "latest_sor_reported_pph": 0.0,
+        "latest_employee_pd_loaders": 75,
+        "adjusted_building_pph_overlap": {
+          "status": "ready-real-overlap",
+          "formula": "SCANTRACK canonical net volume / SPR actual hours",
+          "basis_note": "Matches tracker live fallback: sum LooseOutbound + BagsLinked across SCANTRACK Hub rows, divided by SPR Header ActualHours.",
+          "igate_net_volume": 67967,
+          "sor_actual_hours": 798.34,
+          "igate_net_over_sor_hours": 85.135,
+          "sor_reported_pph": 0.0,
+          "sor_reported_volume": 102044.0,
+          "sor_actual_paid_day": 3.98,
+          "sor_actual_worked": 209.0,
+          "source_paths": {
+            "igate_hub": "~/Desktop/Hub-Intelligence-Initiative/synth-hub-generator/dist/ngate-demo/replay/ngate_hub_summary_6-17-2026_2026-06-17_213533.csv",
+            "sor_header": "~/Desktop/Hub-Intelligence-Initiative/synth-hub-generator/dist/ngate-demo/replay/ngate_spr_SPR_Header_2026-06-17_213533.csv"
+          },
+          "rejected_bases": [
+            "SPR summary PPH",
+            "simulation pph_sor",
+            "sort span denominator"
+          ]
+        }
+      }
+    }
+  },
+  "not_run": {
+    "si_mta_recalibration": "consumes Twilight per-sort digestion outputs, not live pulls"
+  }
+}

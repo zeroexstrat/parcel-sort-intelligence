@@ -57,6 +57,6 @@ release time, so the gate tightens as the project grows. See
 to prove claims like that one.
 
 A companion repository,
-[`twilight-reconciliation-env`](https://github.com/zeroexstrat/twilight-reconciliation-env),
+[`PSI Reconciliation Environment`](https://github.com/zeroexstrat/psi-reconciliation-env),
 packages the same synthetic world as a graded work-sample evaluation
 environment.

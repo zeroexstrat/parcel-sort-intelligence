@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "_comment": "NORTHGATE (NGATE) — the fictional hub shared by the HII public demo and the twilight-reconciliation-env packet (SPEC v2 §0.1). Mirrors the pilot hub's SHAPE (12 outbound PD belts + HVD-13 excluded + air + smalls + DWS inbound) with fictional values: coordinators, site label, file prefix, and mildly perturbed operational constants. Everything here is synthetic/generic — publishable. Boots the tracker via Live-Sort/embed_profile.py with zero code edits (WS2 mechanism).",
+  "_comment": "NORTHGATE (NGATE) — the fictional hub shared by Parcel Sort Intelligence and the psi-reconciliation-env packet (SPEC v2 §0.1). Mirrors the pilot hub's SHAPE (12 outbound PD belts + HVD-13 excluded + air + smalls + DWS inbound) with fictional values: coordinators, site label, file prefix, and mildly perturbed operational constants. Everything here is synthetic/generic — publishable. Boots the tracker via Live-Sort/embed_profile.py with zero code edits (WS2 mechanism).",
   "identity": {
     "hub_code": "NGATE",
     "site": "NORTHGATE Twilight",

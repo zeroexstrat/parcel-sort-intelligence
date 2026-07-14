@@ -2,7 +2,7 @@
 """
 emit_xlsx.py — WS6.1 / SPEC v2 §6: the packet workbook emitter.
 
-One seeded sort-night model, rendered as the twilight-reconciliation-env
+One seeded sort-night model, rendered as the psi-reconciliation-env
 packet's hostile workbook family plus ground_truth.json:
 
     SPR-T_<sortdate>.xlsx            Summary · Work Area Types · Staffing

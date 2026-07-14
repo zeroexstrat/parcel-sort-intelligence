@@ -6,7 +6,7 @@ tracks from a single fictional world:
 - **HII demo mode** — `emit_hub_corpus.py` emits a synthetic `INTEL_PROJ`
   corpus, history seeds, and a timed replay bundle (sequenced live-CSV pulls of
   one NORTHGATE sort) that the tracker ingests through its real pipeline.
-- **Reconciliation packet** (`twilight-reconciliation-env`) — `emit_xlsx.py`
+- **Reconciliation packet** (`psi-reconciliation-env`) — `emit_xlsx.py`
   emits hostile workbook instances + ground truth; that repo pins this
   generator (SPEC v2 §6–7).
 
